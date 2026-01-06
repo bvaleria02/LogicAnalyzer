@@ -35,6 +35,7 @@ typedef enum {
 } LAConfigHeaderFlags;
 
 #define LA_CONVERT_TO_FLAG(__var, __pos) (((__var) & 0x1) << (__pos))
+#define LA_CONVERT_FROM_FLAG(__var, __pos) (((__var) >> (__pos)) & 0x1)
 #define LA_POS_READ_ENABLE 15
 #define LA_POS_IS_MUTED 4
 #define LA_VERSION_NUMBER 1
@@ -42,6 +43,7 @@ typedef enum {
 #define LA_CHANNEL_END_MAGIC 0xDF
 
 #define LA_CONVERT_COLOR_TO_UINT8(__color) ((uint8_t) (__color * 255))
+#define LA_CONVERT_COLOR_TO_DOUBLE(__color) ((double) (__color / (double) 255))
 
 LAErrorCode LAGetConfigHeader(LAWindow *law, LAConfigHeader *lac){
 	LA_HANDLE_NULLPTR(law, LA_PROPAGATE_ERROR);
@@ -182,5 +184,187 @@ cleanup:
 		g_free(filename);
 	}
 
+	return TRUE;
+}
+
+LAErrorCode LAReadFileBytes(FILE *fp, size_t bytes, uint32_t *dest){;
+	LA_HANDLE_NULLPTR(fp, 	LA_PROPAGATE_ERROR);
+	LA_HANDLE_NULLPTR(dest, LA_PROPAGATE_ERROR);
+
+	if(bytes > sizeof(uint32_t)) bytes = sizeof(uint32_t);
+
+	size_t bytesRead = fread(dest, 1, bytes, fp);
+	if(bytesRead < bytes){
+		LA_RAISE_ERROR(LA_ERROR_FILEREAD);
+		return LA_ERROR_FILEREAD;
+	}
+	
+	return LA_NO_ERROR;
+}
+
+uint32_t LAReadFile32(FILE *fp){
+	uint32_t value = 0;
+	LAReadFileBytes(fp, sizeof(uint32_t), &value);
+	return value;
+}
+
+uint16_t LAReadFile16(FILE *fp){
+	uint32_t value = 0;
+	LAReadFileBytes(fp, sizeof(uint16_t), &value);
+	return (uint16_t) value;
+}
+
+uint8_t LAReadFile8(FILE *fp){
+	uint32_t value = 0;
+	LAReadFileBytes(fp, sizeof(uint8_t), &value);
+	return (uint8_t) value;
+}
+
+#define LA_NO_MATCH_READ(__fp, __varRead, __size, __output) do{					\
+	la_errno = LA_NO_ERROR;														\
+																				\
+	switch(__size){																\
+		case 1:	__varRead = LAReadFile8(__fp);									\
+				break;															\
+		case 2:	__varRead = LAReadFile16(__fp);									\
+				break;															\
+		case 4:	__varRead = LAReadFile32(__fp);									\
+				break;															\
+	}																			\
+																				\
+	if(la_errno != LA_NO_ERROR){												\
+		goto cleanup;															\
+	}																			\
+																				\
+	if((__output) != NULL){														\
+		(*(__output)) = __varRead;												\
+	}																			\
+} while(0)
+
+#define LA_EXACT_MATCH_READ(__fp, __varRead, __size, __value, __output) do{		\
+	LA_NO_MATCH_READ(__fp, __varRead, __size, __output);						\
+																				\
+	if(__varRead != __value){													\
+		LA_RAISE_ERROR(LA_ERROR_INCORRECTVALUE);								\
+		goto cleanup;															\
+	}																			\
+} while(0)
+
+#define LA_HANDLE_NULLPTR_CLEANUP(__ptr, __label) do{							\
+	if((__ptr) == NULL){															\
+		LA_RAISE_ERROR(LA_ERROR_NULLPTR);										\
+		goto __label;															\
+	}																			\
+} while(0)
+
+LAErrorCode LAApplyChangesFromConfig(LAWindow *law, LAConfigHeader *lah, LAConfigChannel *lac){
+	LA_HANDLE_NULLPTR(law, LA_PROPAGATE_ERROR);
+	LA_HANDLE_NULLPTR(lac, LA_PROPAGATE_ERROR);
+	LA_HANDLE_NULLPTR(lah, LA_PROPAGATE_ERROR);
+
+	law->rd.zoom = lah->zoom;
+	law->rd.pollingTime = lah->pollingTime;
+	law->rd.virtualBufferSize = lah->readDetails & 0x1FFF;
+	law->rd.dontWrite 			= LA_CONVERT_FROM_FLAG(lah->flags, 		LA_CF_DONT_WRITE);
+	law->rd.showRelativeTime 	= LA_CONVERT_FROM_FLAG(lah->flags, 		LA_CF_SHOW_RELATIVE_TIME);
+	law->rd.showAbsoluteTime 	= LA_CONVERT_FROM_FLAG(lah->flags, 		LA_CF_SHOW_ABSOLUTE_TIME);
+	law->rd.showRelativeSample 	= LA_CONVERT_FROM_FLAG(lah->flags, 		LA_CF_SHOW_RELATIVE_SAMPLES);
+	law->rd.showAbsoluteSample 	= LA_CONVERT_FROM_FLAG(lah->flags, 		LA_CF_SHOW_ABSOLUTE_SAMPLES);
+	law->rd.showBufferEnd 		= LA_CONVERT_FROM_FLAG(lah->flags, 		LA_CF_SHOW_BUFFER_END);
+	law->rd.showBufferRuler 	= LA_CONVERT_FROM_FLAG(lah->flags, 		LA_CF_SHOW_BUFFER_RULER);
+	law->rd.showClockRuler 		= LA_CONVERT_FROM_FLAG(lah->flags, 		LA_CF_SHOW_CLOCK_RULER);
+	law->rd.addDataOffset 		= LA_CONVERT_FROM_FLAG(lah->flags, 		LA_CF_SCROLL);
+	law->bd.dataMode			= lah->captureChannelMode;
+	law->bd.dataMask			= lah->captureChannelMask;
+
+	for(uint8_t i = 0; i < MAX_CHANNEL_COUNT; i++){
+		LA_HANDLE_NULLPTR(&(lac[i]), LA_PROPAGATE_ERROR);
+		law->channel[i].bit 	= lac[i].channel & 0x7;
+		law->channel[i].muted 	= LA_CONVERT_FROM_FLAG(lac[i].channel, LA_POS_IS_MUTED);
+		law->channel[i].r 		= LA_CONVERT_COLOR_TO_DOUBLE(lac[i].r);
+		law->channel[i].g 		= LA_CONVERT_COLOR_TO_DOUBLE(lac[i].g);
+		law->channel[i].b		= LA_CONVERT_COLOR_TO_DOUBLE(lac[i].b);
+
+		if(lac[i].nameLength > 0 && lac[i].name != NULL){
+			gtk_entry_set_text(GTK_ENTRY(law->channel[i].entry), lac[i].name);
+		}
+	}
+
+	return LA_NO_ERROR;
+}
+
+gboolean LALoadSession(GtkWidget *widget, LAWindow *law){
+	gchar *filename;
+	LAConfigHeader lah;
+	LAConfigChannel lac[MAX_CHANNEL_COUNT];
+	uint32_t value = 0;
+	uint8_t hasSelectedFile = 0;
+	FILE *fp = NULL;
+	for(uint8_t i = 0; i < MAX_CHANNEL_COUNT; i++){
+		lac[i].name = NULL;
+	}
+
+	filename = LADialogOpenFile(law, "Load config file", "LogicAnalyzer Config file .lac");
+	LA_HANDLE_NULLPTR_CLEANUP(filename, cleanup);
+
+	hasSelectedFile = 1;
+	fp = fopen(filename, "rb");
+	LA_HANDLE_NULLPTR_CLEANUP(fp, cleanup);
+
+	LA_EXACT_MATCH_READ(fp, value, 4, HEADER_START_MAGIC, &(lah.headerStart));
+	LA_EXACT_MATCH_READ(fp, value, 2, LA_VERSION_NUMBER,  &(lah.fileVersion));
+	LA_NO_MATCH_READ(   fp, value, 1,                     &(lah.device));
+	LA_NO_MATCH_READ(   fp, value, 1,                     &(lah.zoom));
+	LA_NO_MATCH_READ(   fp, value, 4,                     &(lah.flags));
+	LA_NO_MATCH_READ(   fp, value, 4,                     &(lah.clockTime));
+	LA_NO_MATCH_READ(   fp, value, 4,                     &(lah.pollingTime));
+	LA_NO_MATCH_READ(   fp, value, 2,                     &(lah.readDetails));
+	LA_NO_MATCH_READ(   fp, value, 1,                     &(lah.captureChannelMode));
+	LA_NO_MATCH_READ(   fp, value, 1,                     &(lah.captureChannelMask));
+	LA_EXACT_MATCH_READ(fp, value, 4, HEADER_END_MAGIC,   &(lah.headerEnd));
+
+	for(uint8_t i = 0; i < MAX_CHANNEL_COUNT; i++){
+		LA_EXACT_MATCH_READ(fp, value, 1, LA_CHANNEL_START_MAGIC, &(lac[i].startByte));
+		LA_NO_MATCH_READ(   fp, value, 1,						  &(lac[i].channel));
+		LA_NO_MATCH_READ(   fp, value, 1,						  &(lac[i].r));
+		LA_NO_MATCH_READ(   fp, value, 1,						  &(lac[i].g));
+		LA_NO_MATCH_READ(   fp, value, 1,						  &(lac[i].b));
+		LA_NO_MATCH_READ(   fp, value, 1,						  &(lac[i].nameLength));
+		
+		if(lac[i].nameLength > 0){
+			lac[i].name = malloc(lac[i].nameLength + 1);
+			LA_HANDLE_NULLPTR_CLEANUP(lac[i].name, cleanup);
+			fread(lac[i].name, lac[i].nameLength, sizeof(char), fp);
+			lac[i].name[lac[i].nameLength] = '\0';
+		} else {
+			lac[i].name = NULL;
+		}
+
+		LA_EXACT_MATCH_READ(fp, value, 1, LA_CHANNEL_END_MAGIC,   &(lac[i].endByte));
+	}
+
+	uint32_t nullAhPointer = 0;
+	LA_EXACT_MATCH_READ(fp, value, 4, LA_FILE_END_MAGIC, &nullAhPointer);
+	LAApplyChangesFromConfig(law, &lah, lac);
+
+cleanup:
+	if(la_errno != LA_NO_ERROR){
+		g_print("An error ocurred:\n");
+		g_print("\terror code: %i\n", la_errno);
+		g_print("\tfunction: %s\n", la_funcname);
+		g_print("\tfile: %s\n", la_filename);
+		g_print("\tline: %i\n", la_linenumber);
+		g_print("\n");
+		if(hasSelectedFile) LADialogErrorGeneric(law, "Error reading config file\n");
+	} else {
+		g_print("Everything is ok on file read\n");
+	}
+
+	for(uint8_t i = 0; i < MAX_CHANNEL_COUNT; i++){
+		if(lac[i].name != NULL) free(lac[i].name);
+	}
+
+	if(fp != NULL) fclose(fp);
+	if(filename != NULL) g_free(filename);
 	return TRUE;
 }

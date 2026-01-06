@@ -41,7 +41,7 @@ void LAZoomClk(GtkWidget *widget, LAWindow *law){
 	LAZoomClockSyncWindow lazf;
 	LAZoomClockSyncWindow *laz = &lazf;
 
-	LACreateZoomClockSyncWindow(law, &lazf);
+	LACreateZoomClockSyncWindow(law, &lazf, "Zoom clock sync");
 	
 	LARedrawAllScopes(law);
 }
@@ -390,6 +390,12 @@ void LAWindowCreateMenu(LAWindow *law){
 	lam->menuToolsBufferHex		= gtk_menu_item_new_with_label("Circular Buffer HexView");
 	lam->menuToolsConfigHex		= gtk_menu_item_new_with_label("Config HexView");
 	lam->menuToolsFileHex		= gtk_menu_item_new_with_label("Open file HexView");
+	lam->menuToolsSep1			= gtk_separator_menu_item_new();
+	lam->menuToolsTestPiano		= gtk_menu_item_new_with_label("Open test piano");
+	lam->menuToolsWaveformEditor= gtk_menu_item_new_with_label("Open waveform editor");
+	lam->menuToolsClockFreq		= gtk_menu_item_new_with_label("Open clock frequency analyzer");
+	lam->menuToolsStreamFile	= gtk_menu_item_new_with_label("Open dac file stream");
+	lam->menuToolsPresetEditor	= gtk_menu_item_new_with_label("Open LAPF editor");
 
 	lam->menuAdvSibelius	= gtk_menu_item_new_with_label("Quit Sibelius");
 	lam->menuAdvMusescore	= gtk_menu_item_new_with_label("New All");
@@ -461,6 +467,12 @@ void LAWindowCreateMenu(LAWindow *law){
 	gtk_menu_shell_append(GTK_MENU_SHELL(lam->listTools), lam->menuToolsBufferHex);
 	gtk_menu_shell_append(GTK_MENU_SHELL(lam->listTools), lam->menuToolsConfigHex);
 	gtk_menu_shell_append(GTK_MENU_SHELL(lam->listTools), lam->menuToolsFileHex);
+	gtk_menu_shell_append(GTK_MENU_SHELL(lam->listTools), lam->menuToolsSep1);
+	gtk_menu_shell_append(GTK_MENU_SHELL(lam->listTools), lam->menuToolsTestPiano);
+	gtk_menu_shell_append(GTK_MENU_SHELL(lam->listTools), lam->menuToolsWaveformEditor);
+	gtk_menu_shell_append(GTK_MENU_SHELL(lam->listTools), lam->menuToolsClockFreq);
+	gtk_menu_shell_append(GTK_MENU_SHELL(lam->listTools), lam->menuToolsStreamFile);
+	gtk_menu_shell_append(GTK_MENU_SHELL(lam->listTools), lam->menuToolsPresetEditor);
 
 	gtk_menu_shell_append(GTK_MENU_SHELL(lam->listAdv), lam->menuAdvSibelius);
 	gtk_menu_shell_append(GTK_MENU_SHELL(lam->listAdv), lam->menuAdvMusescore);
@@ -472,6 +484,7 @@ void LAWindowCreateMenu(LAWindow *law){
 
 	// File is under construction	
 	g_signal_connect(lam->menuFileSave,      "activate", G_CALLBACK(LASaveSession), law);
+	g_signal_connect(lam->menuFileLoad,      "activate", G_CALLBACK(LALoadSession), law);
 	g_signal_connect(lam->menuFileExit,      "activate", G_CALLBACK(destroyWindow), law);
 
 	g_signal_connect(lam->menuViewZoomLess,  "activate", G_CALLBACK(LAZoomLess), law);
@@ -526,6 +539,12 @@ void LAWindowCreateMenu(LAWindow *law){
 	g_signal_connect(lam->menuToolsBufferHex, 	"activate", G_CALLBACK(LACircularBufferView), law);
 	g_signal_connect(lam->menuToolsConfigHex, 	"activate", G_CALLBACK(LAMenuConfigView), law);
 	g_signal_connect(lam->menuToolsFileHex, 	"activate", G_CALLBACK(LAMenuCustomFileView), law);
+	g_signal_connect(lam->menuToolsTestPiano, 	"activate", G_CALLBACK(LAOpenTestPiano), law);
+	g_signal_connect(lam->menuToolsWaveformEditor,"activate", G_CALLBACK(LAOpenWaveformEditor), law);
+	g_signal_connect(lam->menuToolsClockFreq, 	"activate", G_CALLBACK(LAOpenClockFreqAnalyzer), law);
+	g_signal_connect(lam->menuToolsStreamFile, 	"activate", G_CALLBACK(LAOpenFileStreamer), law);
+	g_signal_connect(lam->menuToolsPresetEditor,"activate", G_CALLBACK(LAOpenPresetEditor), law);
+
 	// Advanced (advanced) is not ready... for now. You are aware.
 
 	gtk_box_pack_start(GTK_BOX(law->vbox), lam->menubar, FALSE, FALSE, 0);

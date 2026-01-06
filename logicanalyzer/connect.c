@@ -15,8 +15,8 @@
 #include <pthread.h>
 #include <stdatomic.h>
 
-#define COM_RATE B921600
-//#define COM_RATE B2000000
+//#define COM_RATE B921600
+#define COM_RATE B2000000
 
 void LAWindowCreateConnect(LAWindow *law){
 	
@@ -57,12 +57,14 @@ void LAHandleConnect(LAWindow *law, LAConnectWindow *lac){
 	law->connect.internalDeviceId = internalDevice + 1;
 	atomic_store(&(law->connect.breakReadLoop), 0);
 
-	LASendBasicSerial(law, LA_COMMAND_POLLING_RATE, DEFAULT_POLLING_RATE);
-	LASendBasicSerial(law, LA_COMMAND_READ_ENABLE, DEFAULT_READ_ENABLE);
-	LASendBasicSerial(law, LA_COMMAND_BUFFER_SIZE, DEFAULT_VIRTUAL_BUFFER_SIZE);
 
 	int rc1 = pthread_create(&(law->connect.readThread), NULL, LAReadThread, law);
 	g_print("Pthread rc1: %i\n", rc1);
+
+	tcflush(law->connect.fd, TCIFLUSH);
+	LASendBasicSerial(law, LA_COMMAND_POLLING_RATE, DEFAULT_POLLING_RATE);
+	LASendBasicSerial(law, LA_COMMAND_READ_ENABLE, DEFAULT_READ_ENABLE);
+	LASendBasicSerial(law, LA_COMMAND_BUFFER_SIZE, DEFAULT_VIRTUAL_BUFFER_SIZE);
 
 	atomic_store(&(law->connect.isConnected), 1);
 	gtk_text_buffer_set_text(GTK_TEXT_BUFFER(lac->textBuffer), "Device connected succesfully!", -1);
@@ -126,6 +128,7 @@ void LACloseDevice(LAWindow *law){
 	law->connect.fd = -1;
 }
 
+#define LA_TIMEOUT_SEC 5
 
 void LASendSerial(LASerialProtocol *p, LAWindow *law){
 	if(p == NULL){
@@ -136,14 +139,76 @@ void LASendSerial(LASerialProtocol *p, LAWindow *law){
 		return;
 	}
 
+	struct timespec ts;
+	clock_gettime(CLOCK_REALTIME, &ts);
+	ts.tv_sec += LA_TIMEOUT_SEC;
+
+	pthread_mutex_lock(&(law->mutexes.lockACK));
+
 	int r = write(law->connect.fd, p->frames, LA_SERIAL_FRAME_LENGTH);
-	g_print("Data send. response: %i\n", r);
+	atomic_store(&(law->mutexes.isWaitingACK), 1);
+	g_print("Data send, waiting ACK. response: %i\n", r);
+
+	int rc = 0;
+	while(law->mutexes.isWaitingACK == 1 && rc != ETIMEDOUT){
+		rc = pthread_cond_timedwait(&(law->mutexes.condACK), &(law->mutexes.lockACK), &ts);
+	}
+
+	atomic_store(&(law->mutexes.isWaitingACK), 0);
+	switch(rc){
+		case ETIMEDOUT:	g_print("ACK timedout\n");
+						break;
+		defaut:			g_print("ACK received\n");
+						break;
+	}
+
+	pthread_mutex_unlock(&(law->mutexes.lockACK));
+}
+
+void LASendSerialV2(LAWindow *law, LASerialV2Protocol *p){
+	if(p == NULL || law == NULL){
+		return;
+	}
+
+	if(law->connect.fd < 0){
+		return;
+	}
+
+	struct timespec ts;
+	clock_gettime(CLOCK_REALTIME, &ts);
+	ts.tv_sec += LA_TIMEOUT_SEC;
+	pthread_mutex_lock(&(law->mutexes.lockACK));
+
+	int r = write(law->connect.fd, p->frames, p->frameLength);
+	g_print("Data send, waiting ACK. response: %i\n", r);
+	atomic_store(&(law->mutexes.isWaitingACK), 1);
+
+	int rc = 0;
+	while(law->mutexes.isWaitingACK == 1 && rc != ETIMEDOUT){
+		rc = pthread_cond_timedwait(&(law->mutexes.condACK), &(law->mutexes.lockACK), &ts);
+	}
+	//g_print("Break from cond\n");
+
+	atomic_store(&(law->mutexes.isWaitingACK), 0);
+	switch(rc){
+		case ETIMEDOUT:	g_print("ACK timedout\n");
+						break;
+		defaut:			g_print("ACK received\n");
+						break;
+	}
+
+	pthread_mutex_unlock(&(law->mutexes.lockACK));
 }
 
 void LASendBasicSerial(LAWindow *law, uint8_t command, uint32_t value){
+	/*
 	LASerialProtocol p;
 	LAPrepareProtocol(&p, command, value);
 	LASendSerial(&p, law);
+	*/
+	LASerialV2Protocol p;
+	LAPrepareProtocolV2Basic(&p, command, value);
+	LASendSerialV2(law, &p);
 }
 
 
@@ -183,12 +248,19 @@ int LACreateConnectWindow(GtkWidget *widget, LAWindow *law){
 	LAConnectWindow laConnectWindow;
 	LAConnectWindow *lac = &laConnectWindow;
 
-	lac->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	gtk_window_set_title(GTK_WINDOW(lac->window), "Connect");
+	lac->window = gtk_dialog_new_with_buttons(
+					"Connect",
+					GTK_WINDOW(law->window),
+					GTK_DIALOG_DESTROY_WITH_PARENT,
+					"_Quit", GTK_RESPONSE_CANCEL,
+					NULL
+				);
 	gtk_container_set_border_width(GTK_CONTAINER(lac->window), 8);
+	gtk_window_set_modal(GTK_WINDOW(lac->window), FALSE);
+	lac->content = gtk_dialog_get_content_area(GTK_DIALOG(lac->window));
 
 	lac->vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
-	gtk_container_add(GTK_CONTAINER(lac->window), GTK_WIDGET(lac->vbox));
+	gtk_container_add(GTK_CONTAINER(lac->content), GTK_WIDGET(lac->vbox));
 
 	lac->label			= gtk_label_new("Device:");
 	lac->response 		= gtk_label_new("Response:");
@@ -200,7 +272,6 @@ int LACreateConnectWindow(GtkWidget *widget, LAWindow *law){
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lac->dropdown), 1);
 
 	lac->connect 		= gtk_button_new_with_label("Connect");
-	lac->cancel 		= gtk_button_new_with_label("Cancel");
 	lac->status			= gtk_text_view_new();
 	lac->textBuffer		= gtk_text_view_get_buffer(GTK_TEXT_VIEW(lac->status));
 	gtk_widget_set_sensitive(lac->status, FALSE);
@@ -216,14 +287,12 @@ int LACreateConnectWindow(GtkWidget *widget, LAWindow *law){
 	gtk_container_add(GTK_CONTAINER(lac->vbox), GTK_WIDGET(lac->hbox));
 
 	gtk_container_add(GTK_CONTAINER(lac->hbox), GTK_WIDGET(lac->connect));
-	gtk_container_add(GTK_CONTAINER(lac->hbox), GTK_WIDGET(lac->cancel));
 
 	g_signal_connect(lac->connect, "clicked", G_CALLBACK(LAButtonConnectCallback), lac);
-	g_signal_connect(lac->window, "destroy", G_CALLBACK(LATerminateConnectWindow), lac);
-	g_signal_connect(lac->cancel, "clicked", G_CALLBACK(LACloseWindow), lac->window);
 
 	gtk_widget_show_all(lac->window);
-	gtk_main();
+	int response = gtk_dialog_run(GTK_DIALOG(lac->window));
+	gtk_widget_destroy(lac->window);
 
 	return TRUE;
 }
@@ -239,12 +308,20 @@ int LACreateCommandWindow(GtkWidget *widget, gpointer *commandp){
 	LACommandWindow laCommandWindow;
 	LACommandWindow *lac = &laCommandWindow;
 
-	lac->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	gtk_window_set_title(GTK_WINDOW(lac->window), "Send Command");
+	lac->window = gtk_dialog_new_with_buttons(
+					"Send Command",
+					GTK_WINDOW(lawp->window),
+					GTK_DIALOG_DESTROY_WITH_PARENT,
+					"_Quit", GTK_RESPONSE_CANCEL,
+					NULL
+				);
+
+	gtk_window_set_modal(GTK_WINDOW(lac->window), FALSE);
 	gtk_container_set_border_width(GTK_CONTAINER(lac->window), 8);
+	lac->content = gtk_dialog_get_content_area(GTK_DIALOG(lac->window));
 
 	lac->vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
-	gtk_container_add(GTK_CONTAINER(lac->window), GTK_WIDGET(lac->vbox));
+	gtk_container_add(GTK_CONTAINER(lac->content), GTK_WIDGET(lac->vbox));
 
 	lac->label			= gtk_label_new("Command");
 	lac->value			= gtk_label_new("Value:");
@@ -255,7 +332,20 @@ int LACreateCommandWindow(GtkWidget *widget, gpointer *commandp){
 	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(lac->dropdown), "Set polling time (μs)");
 	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(lac->dropdown), "Set read enable");
 	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(lac->dropdown), "Set buffer size (samples)");
-	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(lac->dropdown), "Set test time (μs)");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(lac->dropdown), "Set test clock 1 time (10 μs)");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(lac->dropdown), "Set test clock 2 time (10 μs)");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(lac->dropdown), "Set test noise time (10 μs)");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(lac->dropdown), "Set test noise mode (8/16)");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(lac->dropdown), "Set DAC value (0 - 255)");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(lac->dropdown), "Set DAC mode (direct/waveplay)");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(lac->dropdown), "Set DAC rate");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(lac->dropdown), "Set DAC waveform length");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(lac->dropdown), "Set DAC waveform data");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(lac->dropdown), "Set Output value");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(lac->dropdown), "Mute test clock 1");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(lac->dropdown), "Mute test clock 2");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(lac->dropdown), "Mute test noise");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(lac->dropdown), "Mute test dac");
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lac->dropdown), command);
 
 	GtkAdjustment *adjustValue  = gtk_adjustment_new(1, 0,  2147483647, 1, 100, 0);
@@ -275,18 +365,16 @@ int LACreateCommandWindow(GtkWidget *widget, gpointer *commandp){
 	gtk_container_add(GTK_CONTAINER(lac->vbox), GTK_WIDGET(lac->status));
 
 	lac->send 			= gtk_button_new_with_label("Send");
-	lac->cancel 		= gtk_button_new_with_label("Cancel");
 	lac->hbox 			= gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
 	gtk_container_add(GTK_CONTAINER(lac->vbox), GTK_WIDGET(lac->hbox));
 	gtk_container_add(GTK_CONTAINER(lac->hbox), GTK_WIDGET(lac->send));
-	gtk_container_add(GTK_CONTAINER(lac->hbox), GTK_WIDGET(lac->cancel));
 
-	g_signal_connect(lac->window, "destroy", G_CALLBACK(LATerminateCommandWindow), lac);
 	g_signal_connect(lac->send, "clicked", G_CALLBACK(LAButtonCommandSendCallback), lac);
-	g_signal_connect(lac->cancel, "clicked", G_CALLBACK(LACloseWindow), lac->window);
 
 	gtk_widget_show_all(lac->window);
-	gtk_main();
+
+	int response = gtk_dialog_run(GTK_DIALOG(lac->window));
+	gtk_widget_destroy(lac->window);
 
 	return TRUE;
 }

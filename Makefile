@@ -1,8 +1,8 @@
 CC = gcc
-FLAGS = `pkg-config --cflags gtk+-3.0` -fsanitize=address
+FLAGS = `pkg-config --cflags gtk+-3.0` -fsanitize=address -std=gnu2x
 TARGET = main
-SRCS = main.c logicanalyzer/*.c
-LINKS = `pkg-config --cflags --libs gtk+-3.0` -lm -lpthread
+SRCS = main.c logicanalyzer/*.c ./logicanalyzer/compiler/*.c
+LINKS = `pkg-config --cflags --libs gtk+-3.0` -lm -lpthread -lrt
 MINGW =  x86_64-w64-mingw32-gcc
 WINTARGET = main.exe
 

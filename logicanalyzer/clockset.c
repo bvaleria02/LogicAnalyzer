@@ -6,42 +6,45 @@
 #include <string.h>
 #include "liblogicanalyzer.h"
 
-void LAOkayWindow(GtkWidget *widget, LAZoomSetWindow *laz){
+void LAOkayZoomSetWindow(GtkWidget *widget, LAZoomSetWindow *laz){
 	double value = gtk_spin_button_get_value(GTK_SPIN_BUTTON(laz->spin));
 	lawp->rd.zoom = ((int) value);
-	LACloseWindow(NULL, laz->window);
 }
 
 void LACreateZoomSetWindow(LAWindow *law, LAZoomSetWindow *laz){
 	laz->isActive = 1;
 
-	laz->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	gtk_window_set_title(GTK_WINDOW(laz->window), "Zoom Set");
+	laz->window = gtk_dialog_new_with_buttons(
+					"Zoom set",
+					GTK_WINDOW(law->window),
+					GTK_DIALOG_DESTROY_WITH_PARENT,
+					"_Apply", GTK_RESPONSE_ACCEPT,
+					"_Quit", GTK_RESPONSE_CANCEL,
+					NULL
+				);
+
+	gtk_window_set_modal(GTK_WINDOW(laz->window), FALSE);
 	gtk_container_set_border_width(GTK_CONTAINER(laz->window), 8);
+	laz->content = gtk_dialog_get_content_area(GTK_DIALOG(laz->window));
 
 	laz->vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
-	gtk_container_add(GTK_CONTAINER(laz->window), GTK_WIDGET(laz->vbox));
+	gtk_container_add(GTK_CONTAINER(laz->content), GTK_WIDGET(laz->vbox));
 
 	laz->label = gtk_label_new("Enter zoom (0 = default)");
 	gtk_container_add(GTK_CONTAINER(laz->vbox), GTK_WIDGET(laz->label));
 	
-	GtkAdjustment *adjustment 	= gtk_adjustment_new(1, -128, 127, 1, 10, 0);
+	GtkAdjustment *adjustment 	= gtk_adjustment_new(0, -128, 127, 1, 10, 0);
 	laz->spin					= gtk_spin_button_new(adjustment, 1.0, 0);
 	gtk_container_add(GTK_CONTAINER(laz->vbox), GTK_WIDGET(laz->spin));
 
-	laz->hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
-	gtk_container_add(GTK_CONTAINER(laz->vbox), GTK_WIDGET(laz->hbox));
-
-	laz->okay 					= gtk_button_new_with_label("Apply");
-	laz->cancel 				= gtk_button_new_with_label("Cancel");
-	gtk_container_add(GTK_CONTAINER(laz->hbox), GTK_WIDGET(laz->okay));
-	gtk_container_add(GTK_CONTAINER(laz->hbox), GTK_WIDGET(laz->cancel));
-
-	g_signal_connect(laz->window, "destroy", G_CALLBACK(LATerminateZoomSetWindow), laz);
-	g_signal_connect(laz->cancel, "clicked", G_CALLBACK(LACloseWindow), laz->window);
-	g_signal_connect(laz->okay,   "clicked", G_CALLBACK(LAOkayWindow), laz);
-	g_signal_connect(laz->spin,   "activate", G_CALLBACK(LAOkayWindow), laz);
+	g_signal_connect(laz->spin,   "activate", G_CALLBACK(LAOkayZoomSetWindow), laz);
 
 	gtk_widget_show_all(laz->window);
-	gtk_main();
+
+	int response = gtk_dialog_run(GTK_DIALOG(laz->window));
+	if(response == GTK_RESPONSE_ACCEPT){
+		LAOkayZoomSetWindow(NULL, laz);
+	}
+
+	gtk_widget_destroy(laz->window);
 }

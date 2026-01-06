@@ -17,6 +17,10 @@
 #define LA_SMALL_INCREMENT_SCOPE 8
 #define RGB_COUNT 3
 #define LA_SERIAL_FRAME_LENGTH 16
+#define LA_SERIAL_V2_DATA_LENGTH 257
+#define LA_SERIAL_V2_FRAME_LENGTH 261
+#define LA_SERIAL_V2R_DATA_LENGTH 1025
+#define LA_SERIAL_V2R_FRAME_LENGTH 1030
 #define CLK_NAMES_COUNT 12
 #define CLK_NAMES_LENGTH 16
 #define SCOPE_LABEL_TIME_LEFT_X 8
@@ -31,6 +35,8 @@
 #define DEFAULT_READ_ENABLE  1
 #define DEFAULT_VIRTUAL_BUFFER_SIZE 128
 
+#define LA_READ_BUFFER_LENGTH 8192
+
 #define DEFAULT_BUCKET_LENGTH 0
 #define DEFAULT_BUCKET_CAPACITY 524288
 
@@ -41,8 +47,29 @@ typedef enum {
 	LA_COMMAND_POLLING_RATE = 1,
 	LA_COMMAND_READ_ENABLE  = 2,
 	LA_COMMAND_BUFFER_SIZE  = 3,
-	LA_COMMAND_TEST_RATE  	= 4
+	LA_COMMAND_TEST_CLOCK1_RATE 	= 4,
+	LA_COMMAND_TEST_CLOCK2_RATE 	= 5,
+	LA_COMMAND_TEST_NOISE_RATE 		= 6,
+	LA_COMMAND_TEST_NOISE_MODE 		= 7,
+  	LA_COMMAND_TEST_DAC_VALUE     	= 8,
+  	LA_COMMAND_TEST_DAC_MODE      	= 9,
+  	LA_COMMAND_TEST_DAC_SPEED     	= 10,
+  	LA_COMMAND_TEST_DAC_WRAP      	= 11,
+  	LA_COMMAND_TEST_DAC_WAVE      	= 12,
+  	LA_COMMAND_OUT_VALUE          	= 13,
+	LA_COMMAND_TEST_CLOCK1_MUTE 	= 14,
+	LA_COMMAND_TEST_CLOCK2_MUTE 	= 15,
+	LA_COMMAND_TEST_NOISE_MUTE 		= 16,
+	LA_COMMAND_TEST_DAC_MUTE 		= 17,
+  	LA_COMMAND_TEST_DAC_WAVE_FULL  	= 18,
+	LA_COMMAND_SEND_DAC_STREAM		= 19
 } LACommand;
+
+typedef enum {
+	LA_RX_COMMAND_NOP				= 0,
+	LA_RX_COMMAND_ACK				= 1,
+	LA_RX_COMMAND_CAPTURE			= 2
+} LARecvCommand;
 
 typedef enum {
 	LA_NO_ERROR					= 0,
@@ -51,7 +78,14 @@ typedef enum {
 	LA_ERROR_NOBUCKET			= 3,
 	LA_ERROR_FILE				= 4,
 	LA_ERROR_VALUEREAD			= 5,
-	LA_ERROR_OUTOFRANGE			= 6
+	LA_ERROR_OUTOFRANGE			= 6,
+	LA_ERROR_FILEREAD			= 7,
+	LA_ERROR_INCORRECTVALUE		= 8,
+	LA_ERROR_FILENOTFOUND		= 9,
+	LA_ERROR_MMAP				= 10,
+	LA_ERROR_MUNMAP				= 11,
+	LA_ERROR_INVALIDSYNTAX		= 12,
+	LA_ERROR_INVALIDVALUE		= 13
 } LAErrorCode;
 
 typedef enum {
@@ -59,6 +93,25 @@ typedef enum {
 	LA_RECORD_DATA_MODE_VISIBLE	= 1,
 	LA_RECORD_DATA_MODE_CUSTOM	= 2
 } LARecordDataMode;
+
+typedef enum {
+	LA_CHANNEL_SELECT_AUTODETECT_CLOCK	= 0,
+	LA_CHANNEL_SELECT_0					= 1,
+	LA_CHANNEL_SELECT_1					= 2,
+	LA_CHANNEL_SELECT_2					= 3,
+	LA_CHANNEL_SELECT_3					= 4,
+	LA_CHANNEL_SELECT_4					= 5,
+	LA_CHANNEL_SELECT_5					= 6,
+	LA_CHANNEL_SELECT_6					= 7,
+	LA_CHANNEL_SELECT_7					= 8
+} LAChannelSelectorClockSync;
+
+typedef enum {
+	LA_BUFFER_SELECT_VISIBLE	= 0,
+	LA_BUFFER_SELECT_ALL		= 1,
+	LA_BUFFER_SELECT_CUSTOM		= 2,
+	LA_BUFFER_SELECT_003		= 3 
+} LABufferSelect;
 
 typedef LAErrorCode (*LAHexDumpCallback)(void *, size_t, size_t, uint8_t *, size_t, size_t*);
 
@@ -100,6 +153,27 @@ typedef struct {
 	uint32_t value;
 	uint8_t frames[LA_SERIAL_FRAME_LENGTH];
 } LASerialProtocol;
+
+typedef struct {
+	uint8_t command;
+	uint16_t length;
+	uint16_t fcs;
+	uint8_t data[LA_SERIAL_V2_DATA_LENGTH];
+	uint8_t frames[LA_SERIAL_V2_FRAME_LENGTH];
+	uint16_t frameLength;
+	uint8_t isReady;
+} LASerialV2Protocol;
+
+typedef struct {
+	uint8_t command;
+	uint16_t length;
+	uint16_t fcs;
+	uint8_t data[LA_SERIAL_V2R_DATA_LENGTH];
+	uint8_t frames[LA_SERIAL_V2R_FRAME_LENGTH];
+	uint16_t frameLength;
+	uint8_t isReady;
+	uint16_t offset;
+} LASerialV2RecvProtocol;
 
 typedef struct LA_BUCKET{
 	uint32_t length;
@@ -206,6 +280,12 @@ typedef struct{
 	GtkWidget *menuToolsBufferHex;
 	GtkWidget *menuToolsConfigHex;
 	GtkWidget *menuToolsFileHex;
+	GtkWidget *menuToolsSep1;
+	GtkWidget *menuToolsTestPiano;
+	GtkWidget *menuToolsWaveformEditor;
+	GtkWidget *menuToolsClockFreq;
+	GtkWidget *menuToolsStreamFile;
+	GtkWidget *menuToolsPresetEditor;
 
 	GtkWidget *menuAdv;
 	GtkWidget *listAdv;
@@ -266,6 +346,10 @@ typedef struct {
 typedef struct {
 	pthread_mutex_t bucketAccess;
 	pthread_mutex_t dataBufferAccess;
+
+	uint8_t isWaitingACK;
+	pthread_mutex_t lockACK;
+	pthread_cond_t condACK;
 } LAMutexes;
 
 typedef struct {
@@ -309,8 +393,17 @@ typedef struct{
 	GtkWidget *vbox;
 } LAWindow;
 
+typedef struct _la_clocksync_node{
+	uint8_t value;
+	uint32_t duration;
+	uint8_t ignore;
+	struct _la_clocksync_node *prev;
+	struct _la_clocksync_node *next;
+} LAClockSyncNode;
+
 typedef struct {
 	GtkWidget *window;
+	GtkWidget *content;
 	GtkWidget *vbox;
 	GtkWidget *hbox;
 
@@ -327,6 +420,12 @@ typedef struct {
 	GtkWidget *buSelLabel2;
 	GtkWidget *buSelDescView;
 	GtkTextBuffer *buSelDescBuffer;
+	GtkWidget *buSelSep;
+	GtkWidget *buSelResultTile;
+	GtkWidget *buSelResultValue;
+	GtkWidget *buSelResultValue2;
+	GtkWidget *buSelSep2;
+	GtkWidget *buSelResultTip;
 	
 	GtkWidget *opLabel;
 	GtkWidget *opFallingEdge;
@@ -348,26 +447,45 @@ typedef struct {
 
 	GtkWidget *confirmHbox;
 	GtkWidget *okay;
-	GtkWidget *cancel;
 
 	uint8_t isActive;
+	uint32_t pollingTime;
+	
+	uint8_t channelSelectValue;
+	uint8_t bufferSelectValue;
+	uint32_t bufferValue;
+	uint8_t useFallingEdge;
+	uint8_t useRisingEdge;
+	uint8_t discardOutliers;
+	double sigmaValue;
+	uint8_t discardLower;
+	uint32_t lowerValue;
+	uint8_t discardUpper;
+	uint32_t upperValue;
+	uint8_t useCorrelation;
+
+	uint8_t *buffer;
+	uint32_t bufferSize;
+	LAClockSyncNode *splitNodeStart;
+	double mean;
+	double std;
+	int response;
 } LAZoomClockSyncWindow;
 
 typedef struct {
 	GtkWidget *window;
+	GtkWidget *content;
 	GtkWidget *vbox;
-	GtkWidget *hbox;
 
 	GtkWidget *label;
 	GtkWidget *spin;
-	GtkWidget *okay;
-	GtkWidget *cancel;
 
 	uint8_t isActive;
 } LAZoomSetWindow;
 
 typedef struct {
 	GtkWidget *window;
+	GtkWidget *content;
 	GtkWidget *vbox;
 	GtkWidget *dropdown;
 	GtkWidget *connect;
@@ -376,11 +494,11 @@ typedef struct {
 	GtkTextBuffer *textBuffer;
 	GtkWidget *response;
 	GtkWidget *hbox;
-	GtkWidget *cancel;
 } LAConnectWindow;
 
 typedef struct {
 	GtkWidget *window;
+	GtkWidget *content;
 	GtkWidget *vbox;
 	GtkWidget *label;
 	GtkWidget *dropdown;
@@ -392,11 +510,11 @@ typedef struct {
 
 	GtkWidget *hbox;
 	GtkWidget *send;
-	GtkWidget *cancel;
 } LACommandWindow;
 
 typedef struct {
 	GtkWidget *window;
+	GtkWidget *content;
 	GtkWidget *vbox;
 
 	GtkWidget *offsetHbox;
@@ -419,7 +537,6 @@ typedef struct {
 
 	GtkWidget *buttonsHbox;
 	GtkWidget *buttonExport;
-	GtkWidget *buttonQuit;
 
 	size_t offset;
 	void *src;
@@ -452,6 +569,71 @@ typedef struct {
 	char *name;
 	uint8_t endByte;
 } LAConfigChannel;
+
+#define LA_WAVEFORM_SIZE 256
+#define LA_DEFAULT_WAVE_FLAT_VALUE 128
+
+typedef struct _la_waveform{
+	uint16_t size;
+	uint8_t data[LA_WAVEFORM_SIZE];
+
+	struct _la_waveform *prev;
+	struct _la_waveform *next;
+} LAWaveform;
+
+typedef struct {
+	GtkWidget *window;
+	GtkWidget *content;
+	GtkWidget *vbox;
+
+	GtkWidget *hboxControl1;
+	GtkWidget *waveSelectorLabel;
+	GtkWidget *waveSelector;
+	GtkAdjustment *waveSelectorAdj;
+	GtkWidget *buttonNew;
+	GtkWidget *buttonDelete;
+	GtkWidget *buttonMoveLeft;
+	GtkWidget *buttonMoveRight;
+	GtkWidget *buttonDeleteAll;
+
+	GtkWidget *hboxControl2;
+	GtkWidget *waveSizeLabel;
+	GtkWidget *waveSize;
+	GtkAdjustment *waveSizeAdj;
+	GtkWidget *flat;
+	GtkWidget *presetsLabel;
+	GtkWidget *presets;
+	GtkWidget *filterButton;
+
+	GtkWidget *hboxWave;
+	GtkWidget *wave;
+
+	GtkWidget *hboxHexview;
+	GtkWidget *hexview;
+
+	GtkWidget *hboxButtons;
+	GtkWidget *sendThis;
+	GtkWidget *sendAll;
+	GtkWidget *open;
+	GtkWidget *exportThis;
+	GtkWidget *exportAll;
+
+	LAWaveform *wavetable;
+	LAWaveform *currentwave;
+	uint8_t mouseClick;
+} LAWaveformEditor;
+
+typedef enum {
+	LA_WAVE_PRESET_CUSTOM		= 0,
+	LA_WAVE_PRESET_SQUARE		= 1,
+	LA_WAVE_PRESET_SINE			= 2,
+	LA_WAVE_PRESET_TRIANGLE		= 3,
+	LA_WAVE_PRESET_SAW			= 4,
+	LA_WAVE_PRESET_EXP			= 5,
+	LA_WAVE_PRESET_NOISE		= 6,
+	LA_WAVE_PRESET_PULSE25_0	= 7,
+	LA_WAVE_PRESET_PULSE12_5	= 8
+} LAWavePreset;
 
 extern LAWindow *lawp;
 extern double defaultChannelColors[MAX_CHANNEL_COUNT][RGB_COUNT];
@@ -506,6 +688,7 @@ void  LAButtonCommandSendCallback(GtkWidget *widget, LACommandWindow *lac);
 void LASendBasicSerial(LAWindow *law, uint8_t command, uint32_t value);
 int LACreateConnectWindow(GtkWidget *widget, LAWindow *law);
 int LACreateCommandWindow(GtkWidget *widget, gpointer *commandp);
+void LASendSerialV2(LAWindow *law, LASerialV2Protocol *p);
 
 // threads.c
 void *LAReadThread(void *vlaw);
@@ -515,10 +698,22 @@ int LAWindowUpdateLoopConnector(void *vlaw);
 
 // protocol
 void LAPrepareProtocol(LASerialProtocol *p, uint8_t command, uint32_t value);
+void LAPrepareProtocolV2Basic(LASerialV2Protocol *p, uint8_t command, uint32_t value);
+uint8_t LAFuncPopcount(uint8_t value);
+uint16_t LACalculateFCSProtocolV2(LASerialV2Protocol *p);
+void LACompileProtocolV2Frames(LASerialV2Protocol *p);
+void LAPrepareProtocolV2Wave(LASerialV2Protocol *p, uint8_t bank, uint8_t *wave, uint16_t size);
+void LAPrepareProtocolV2Stream(LASerialV2Protocol *p, uint8_t *data, uint16_t size);
+LAErrorCode LAProtocolV2RInit(LASerialV2RecvProtocol *p);
+LAErrorCode LAProtocolV2RFill(LASerialV2RecvProtocol *p, uint8_t *data, uint16_t size);
+uint8_t LAProtocolV2RIsReady(LASerialV2RecvProtocol *p);
+LAErrorCode LAProtocolV2RUnpack(LASerialV2RecvProtocol *p);
 
 // clocksync.c
 int8_t LAGetClockChannel(LAWindow *law);
-void LACreateZoomClockSyncWindow(LAWindow *law, LAZoomClockSyncWindow *laz);
+void LACreateZoomClockSyncWindow(LAWindow *law, LAZoomClockSyncWindow *laz, const char *title);
+void LAOpenClockFreqAnalyzer(GtkWidget *widget, LAWindow *law);
+LAErrorCode LAGetFromCircularBuffer(LAWindow *law, uint8_t **buffer, uint32_t *bufSize, LABufferSelect bufSel, uint32_t bufTargetSize);
 
 // clockset.c
 void LACreateZoomSetWindow(LAWindow *law, LAZoomSetWindow *laz);
@@ -569,5 +764,21 @@ LAErrorCode LASetMagicConfigHeader(LAConfigHeader *lac);
 LAErrorCode LAGetConfigHeader(LAWindow *law, LAConfigHeader *lac);
 LAErrorCode LASetMagicConfigChannel(LAConfigChannel *lac);
 gboolean LASaveSession(GtkWidget *widget, LAWindow *law);
+gboolean LALoadSession(GtkWidget *widget, LAWindow *law);
+
+// pianotest.c
+void LAOpenTestPiano(GtkWidget *widget, LAWindow *law);
+
+// waveformeditor.c
+void LAOpenWaveformEditor(GtkWidget *widget, LAWindow *law);
+
+// stramfile.c
+void LAOpenFileStreamer(GtkWidget *widget, LAWindow *law);
+
+// filterwindow.c
+void LAOnFilterButtonWave(GtkWidget *widget, LAWaveformEditor *lae);
+
+// preseteditor.c
+void LAOpenPresetEditor(GtkWidget *widget, LAWindow *law);
 
 #endif // LIB_LOGIC_ANALYZER_H

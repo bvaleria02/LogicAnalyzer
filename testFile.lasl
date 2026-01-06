@@ -1,0 +1,11 @@
+#define A 123
+#define RADIOHEAD play clock1 45
+
+main:
+	play clock1, 428
+	play clock2, 732
+	sleep 432
+	halt
+	end
+
+#define END 2576187956

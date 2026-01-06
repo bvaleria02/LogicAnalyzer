@@ -281,6 +281,61 @@ LAErrorCode LAHexViewHandleOffsetChange(GtkWidget *widget, LAHexView *lah){
 	LAHexViewUpdateData(lah);
 }
 
+
+void LAHexViewRewind(LAHexView *lah){
+	if(lah->offset < 0x10){
+		lah->offset = 0;
+	} else {
+		lah->offset -= 0x10;
+	}
+	LAHexViewUpdateData(lah);
+}
+
+void LAHexViewAdvance(LAHexView *lah){
+	if(lah->offset >= (lah->srcSize - 0x10)){
+		lah->offset = lah->srcSize - 0x10;
+	} else {
+		lah->offset += 0x10;
+	}
+	LAHexViewUpdateData(lah);
+}
+
+void LAHexViewRewindBig(LAHexView *lah){
+	if(lah->offset < 0x100){
+		lah->offset = 0;
+	} else {
+		lah->offset -= 0x100;
+	}
+	LAHexViewUpdateData(lah);
+}
+
+void LAHexViewAdvanceBig(LAHexView *lah){
+	if(lah->offset >= (lah->srcSize - 0x100)){
+		lah->offset = lah->srcSize - 0x100;
+	} else {
+		lah->offset += 0x100;
+	}
+	LAHexViewUpdateData(lah);
+}
+
+gboolean LAHexViewHandleKeyboard(GtkWidget *widget, GdkEventKey *event, LAHexView *lah){
+	int response = TRUE;
+	
+	switch(event->keyval){
+		case GDK_KEY_Left:		LAHexViewRewind(lah);
+								break;
+		case GDK_KEY_Right:		LAHexViewAdvance(lah);
+								break;
+		case GDK_KEY_Page_Down:	LAHexViewAdvanceBig(lah);
+								break;
+		case GDK_KEY_Page_Up:	LAHexViewRewindBig(lah);
+								break;
+	}
+
+
+	return response;
+}
+
 LAErrorCode LACreateHexView(LAWindow *law, void *buffer, size_t size, LAHexDumpCallback callback, pthread_mutex_t *mutex){
 	LA_HANDLE_NULLPTR(law, 		LA_PROPAGATE_ERROR);
 	LA_HANDLE_NULLPTR(buffer, 	LA_PROPAGATE_ERROR);
@@ -296,12 +351,20 @@ LAErrorCode LACreateHexView(LAWindow *law, void *buffer, size_t size, LAHexDumpC
 
 	char tempCharBuffer[LA_SMALL_BUFFER_SIZE];
 
-	lah->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	gtk_window_set_title(GTK_WINDOW(lah->window), "HexView");
+	lah->window = gtk_dialog_new_with_buttons(
+					"HexView",
+					GTK_WINDOW(law->window),
+					GTK_DIALOG_DESTROY_WITH_PARENT,
+					"_Quit", GTK_RESPONSE_CANCEL,
+					NULL
+				);
+
+	gtk_window_set_modal(GTK_WINDOW(lah->window), FALSE);
 	gtk_container_set_border_width(GTK_CONTAINER(lah->window), 8);
+	lah->content = gtk_dialog_get_content_area(GTK_DIALOG(lah->window));
 
 	lah->vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
-	gtk_container_add(GTK_CONTAINER(lah->window), GTK_WIDGET(lah->vbox));
+	gtk_container_add(GTK_CONTAINER(lah->content), GTK_WIDGET(lah->vbox));
 
 	lah->offsetHbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
 	gtk_container_add(GTK_CONTAINER(lah->vbox), GTK_WIDGET(lah->offsetHbox));
@@ -338,7 +401,6 @@ LAErrorCode LACreateHexView(LAWindow *law, void *buffer, size_t size, LAHexDumpC
 	lah->infoSize 			= gtk_label_new(tempCharBuffer);
 
 	lah->buttonExport		= gtk_button_new_with_label("Export");
-	lah->buttonQuit 		= gtk_button_new_with_label("Quit");
 
 	gtk_container_add(GTK_CONTAINER(lah->offsetHbox), lah->offsetLabel);
 	gtk_container_add(GTK_CONTAINER(lah->offsetHbox), lah->offsetSpin);
@@ -353,16 +415,15 @@ LAErrorCode LACreateHexView(LAWindow *law, void *buffer, size_t size, LAHexDumpC
 	gtk_container_add(GTK_CONTAINER(lah->infoHbox), lah->infoSize);
 
 	gtk_container_add(GTK_CONTAINER(lah->buttonsHbox), lah->buttonExport);
-	gtk_container_add(GTK_CONTAINER(lah->buttonsHbox), lah->buttonQuit);
 
-	g_signal_connect(lah->window, 		"destroy", G_CALLBACK(LATerminateHexViewWindow), lah);
-	g_signal_connect(lah->buttonQuit, 	"clicked", G_CALLBACK(LACloseWindow), lah->window);
 	g_signal_connect(lah->offsetButton, "clicked", G_CALLBACK(LAHexViewHandleOffsetChange), lah);
 	g_signal_connect(lah->offsetSpin, 	"activate", G_CALLBACK(LAHexViewHandleOffsetChange), lah);
+	g_signal_connect(lah->window, 	"key-press-event", G_CALLBACK(LAHexViewHandleKeyboard), lah);
 
 	LAHexViewUpdateData(lah);
 	gtk_widget_show_all(lah->window);
-	gtk_main();
+	int response = gtk_dialog_run(GTK_DIALOG(lah->window));
+	gtk_widget_destroy(lah->window);
 
 	return LA_NO_ERROR;
 }
