@@ -5,6 +5,7 @@
 #include <pthread.h>
 #include <time.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 #define MAX_CHANNEL_COUNT 8
 #define CHANNEL_TABLE_HEIGHT 5
@@ -30,6 +31,7 @@
 #define SCOPE_LABEL_TIME_DY 12
 #define SCOPE_BUFFER_END_TEXT_DX 64
 #define SCOPE_BUFFER_START_TEXT_DX 8
+#define LA_EPS 1e-6
 
 #define DEFAULT_POLLING_RATE 1000
 #define DEFAULT_READ_ENABLE  1
@@ -41,6 +43,9 @@
 #define DEFAULT_BUCKET_CAPACITY 524288
 
 #define LA_ALL_CHANNELS_MASK 0xFF
+#define LA_TAG_END 0xFFFF
+
+#define LA_MATRIX_INDEX(c, r, h) ((r)*(h) + (c))
 
 typedef enum {
 	LA_COMMAND_NOP			= 0,
@@ -72,20 +77,28 @@ typedef enum {
 } LARecvCommand;
 
 typedef enum {
-	LA_NO_ERROR					= 0,
-	LA_ERROR_NULLPTR			= 1,
-	LA_ERROR_MALLOC				= 2,
-	LA_ERROR_NOBUCKET			= 3,
-	LA_ERROR_FILE				= 4,
-	LA_ERROR_VALUEREAD			= 5,
-	LA_ERROR_OUTOFRANGE			= 6,
-	LA_ERROR_FILEREAD			= 7,
-	LA_ERROR_INCORRECTVALUE		= 8,
-	LA_ERROR_FILENOTFOUND		= 9,
-	LA_ERROR_MMAP				= 10,
-	LA_ERROR_MUNMAP				= 11,
-	LA_ERROR_INVALIDSYNTAX		= 12,
-	LA_ERROR_INVALIDVALUE		= 13
+	LA_NO_ERROR						= 0,
+	LA_ERROR_NULLPTR				= 1,
+	LA_ERROR_MALLOC					= 2,
+	LA_ERROR_NOBUCKET				= 3,
+	LA_ERROR_FILE					= 4,
+	LA_ERROR_VALUEREAD				= 5,
+	LA_ERROR_OUTOFRANGE				= 6,
+	LA_ERROR_FILEREAD				= 7,
+	LA_ERROR_INCORRECTVALUE			= 8,
+	LA_ERROR_FILENOTFOUND			= 9,
+	LA_ERROR_MMAP					= 10,
+	LA_ERROR_MUNMAP					= 11,
+	LA_ERROR_INVALIDSYNTAX			= 12,
+	LA_ERROR_INVALIDVALUE			= 13,
+	LA_ERROR_ZEROLENGTH				= 14,
+	LA_ERROR_MATRIX					= 15,
+	LA_ERROR_NONMATCHING_DIMENSION 	= 16,
+	LA_ERROR_PERMISSIONS 			= 17,
+	LA_ERROR_NONINVERTIBLE_MATRIX   = 18,
+	LA_ERROR_BIG_INT				= 19,
+	LA_ERROR_ZERODIV				= 20,
+	LA_ERROR_OPENGL_SHADERS			= 21
 } LAErrorCode;
 
 typedef enum {
@@ -145,6 +158,26 @@ extern _Thread_local LALineNumber 	la_linenumber;
 			return LA_ERROR_NULLPTR;					\
 		}												\
 		return __returnValue;							\
+	}													\
+} while(0)
+
+#define LA_CLAMP_VALUE(__value, __min, __max) do{	\
+	if((__value) < (__min)) (__value) = (__min);	\
+	if((__value) > (__max)) (__value) = (__max);	\
+} while(0)
+
+#define LA_GET_PARAMETER(__index, __paramList, __paramCount) ((__index) < (__paramCount) && (__index) >= 0) ? ((__paramList)[__index]) : 0
+
+#define LA_USE_VAR(__var) (void) (__var)
+
+#define LA_PROFILER(__func, __name) do{							\
+	{													\
+		struct timespec __startTime;					\
+		clock_gettime(CLOCK_MONOTONIC, &__startTime);	\
+		struct timespec __endTime;						\
+		{__func}										\
+		clock_gettime(CLOCK_MONOTONIC, &__endTime);		\
+		printf("Time spent (%s): %le seconds\n", __name, ((__endTime.tv_sec + (__endTime.tv_nsec / (double) 1000000000)) - (__startTime.tv_sec + (__startTime.tv_nsec / (double) 1000000000))));	\
 	}													\
 } while(0)
 
@@ -286,6 +319,7 @@ typedef struct{
 	GtkWidget *menuToolsClockFreq;
 	GtkWidget *menuToolsStreamFile;
 	GtkWidget *menuToolsPresetEditor;
+	GtkWidget *menuToolsSpectrumAnal;
 
 	GtkWidget *menuAdv;
 	GtkWidget *listAdv;
@@ -296,6 +330,9 @@ typedef struct{
 	GtkWidget *menuAdvAdvanced3;
 	GtkWidget *menuAdvAdvanced4;
 	GtkWidget *menuAdvAdvanced5;
+
+	GtkWidget *menuHelp;
+	GtkWidget *listHelp;
 } LAMenu;
 
 typedef struct{
@@ -635,6 +672,230 @@ typedef enum {
 	LA_WAVE_PRESET_PULSE12_5	= 8
 } LAWavePreset;
 
+#define LA_PF_MAGIC_LENGTH 4
+#define LA_PF_NAME_LENGTH 1024
+#define LA_PF_PADDING_LENGTH 3
+
+typedef struct {
+	uint8_t magic[LA_PF_MAGIC_LENGTH];
+	uint32_t version;
+	uint32_t pluginId;
+	uint16_t nameLength;
+	uint8_t name[LA_PF_NAME_LENGTH];
+	uint32_t crc32Header;
+	uint32_t crc32Data;
+	uint8_t padding[LA_PF_PADDING_LENGTH];
+} LAPFHeader;
+
+typedef struct _lapf_data_ {
+	uint16_t tag;
+	uint16_t length;
+	uint8_t *value;
+	struct _lapf_data_ *prev;
+	struct _lapf_data_ *next;
+} LAPFDataNode;
+
+typedef struct {
+	LAPFHeader header;
+	uint32_t dataLength;
+	LAPFDataNode *dataStart;
+	LAPFDataNode *dataLast;
+} LAPresetFile;
+
+typedef struct {
+	uint8_t *data;
+	size_t capacity;
+	size_t length;
+	size_t readOffset;
+} LAMappedFile;
+
+typedef struct {
+	GtkWidget *window;
+	GtkWidget *content;
+	GtkWidget *vbox;
+
+	GtkWidget *frameFile;
+	GtkWidget *hboxFile;
+	GtkWidget *fileOpenButton;
+	GtkWidget *fileOpenFilename;
+	
+	GtkWidget *frameHeader;
+	GtkWidget *gridHeader;
+	GtkWidget *headerMagicLabel;
+	GtkWidget *headerMagicValue;
+	GtkWidget *headerVersionLabel;
+	GtkWidget *headerVersionValue;
+	GtkWidget *headerPluginIdLabel;
+	GtkWidget *headerPluginIdValue;
+	GtkWidget *headerNameLabel;
+	GtkWidget *headerNameValue;
+	GtkWidget *headerNameApply;
+	GtkWidget *headerNameLengthLabel;
+	GtkWidget *headerNameLengthValue;
+	GtkWidget *headerCRC32ALabel;
+	GtkWidget *headerCRC32AValue;
+	GtkWidget *headerCRC32BLabel;
+	GtkWidget *headerCRC32BValue;
+
+	GtkWidget *frameData;
+	GtkWidget *vboxData;
+	GtkWidget *dataLengthHbox;
+	GtkWidget *dataLengthLabel;
+	GtkWidget *dataLengthValue;
+	GtkWidget *dataContainer;
+	GtkWidget *dataView;
+	GtkListStore *dataStore;
+	GtkCellRenderer *dataRenderer;
+	GtkTreeIter dataIter;
+	GtkWidget *hboxData;
+	GtkWidget *dataType;
+	GtkWidget *dataValue;
+	GtkWidget *dataButtonAdd;
+
+	uint8_t isFileOpen;
+	LAMappedFile file;
+	LAPresetFile presetFile;
+} LAPresetEditor;
+
+#define LA_FIR_FILTER_PARAMS 3
+#define GRAPH_MINI_WIDTH 	256
+#define GRAPH_MINI_HEIGHT 	128
+
+#define GRAPH_WIDTH 	768
+#define GRAPH_HEIGHT 	192
+
+typedef enum {
+	LA_FILTER_WINDOW_RECTANGULAR		= 0,
+	LA_FILTER_WINDOW_TRIANGULAR			= 1,
+	LA_FILTER_WINDOW_WELCH				= 2,
+	LA_FILTER_WINDOW_HANN				= 3,
+	LA_FILTER_WINDOW_HAMMING			= 4,
+	LA_FILTER_WINDOW_TRAPZ				= 5,
+	LA_FILTER_WINDOW_CIRCULAR			= 6,
+	LA_FILTER_WINDOW_SINC				= 7,
+	LA_FILTER_WINDOW_IMPULSE			= 8,
+	LA_FILTER_WINDOW_BLACKMAN			= 9,
+	LA_FILTER_WINDOW_BLACKMAN_HARRIS	= 10,
+	LA_FILTER_WINDOW_KAISER				= 11,
+	LA_FILTER_WINDOW_GAUSSIAN			= 12,
+	LA_FILTER_WINDOW_NUTALL				= 13,
+	LA_FILTER_WINDOW_FLATTOP			= 14,
+	LA_FILTER_WINDOW_PARZEN				= 15,
+	LA_FILTER_WINDOW_COSINESUM			= 16,
+	LA_FILTER_WINDOW_BLACKMAN_NUTALL	= 17,
+	LA_FILTER_WINDOW_SINEPOWER			= 18,
+	LA_FILTER_WINDOW_APPROX_GAUSSIAN	= 19,
+	LA_FILTER_WINDOW_TUKEY				= 20,
+	LA_FILTER_WINDOW_PLANK_TAPPER		= 21,
+	LA_FILTER_WINDOW_POISSON			= 22,
+	LA_FILTER_WINDOW_LANCZOS			= 23,
+	LA_FILTER_WINDOW_NOISE				= 24,
+	LA_FILTER_WINDOW_LOGISTICAL			= 25,
+	LA_FILTER_WINDOW_LOGISTICAL_2		= 26,
+	LA_FILTER_WINDOW_DAMPED				= 27,
+	LA_FILTER_WINDOW_GAUSSINE			= 28,
+	LA_FILTER_WINDOW_POLY_CHEBYSHEV		= 29,
+	LA_FILTER_WINDOW_SMOOTH_TRAPZ		= 30,
+	LA_FILTER_WINDOW_ROOT_CHEBYSHEV		= 31,
+	LA_FILTER_WINDOW_COMPACT_SINE		= 32
+} LAFilterWindowType;
+
+#define LA_FILTER_WINDOW_COUNT 33
+
+typedef struct {
+	char *name;
+	double value;
+	double min;
+	double max;
+	double stepIncrement;
+	double pageIncrement;
+	double digits;
+} LAFilterWindowParameter;
+
+typedef struct {
+	char *name;
+	LAFilterWindowParameter param[LA_FIR_FILTER_PARAMS];
+	LAErrorCode (*callable)(double *, size_t, double *, size_t);
+} LAFilterWindowDetails;
+
+extern LAFilterWindowDetails LAWindowTypeDetails[LA_FILTER_WINDOW_COUNT];
+
+#define LA_IIR_LENGTH_A 3
+#define LA_IIR_LENGTH_B 3
+#define LA_CS_COUNT 15
+
+typedef struct {
+	uint8_t filterType;
+
+	uint8_t FIRFilterSize;
+	uint8_t FIRFilterType;
+	double	FIRFrequency;
+	uint8_t FIRWindowType;
+	double 	FIRParam1;
+	double 	FIRParam2;
+	double 	FIRParam3;
+
+	double 	IIRa[LA_IIR_LENGTH_A];
+	double 	IIRb[LA_IIR_LENGTH_B];
+
+	uint64_t MALength;
+
+	uint8_t csType;
+	double csParam[LA_CS_COUNT];
+	uint8_t csSolver;
+
+	size_t cfgTest;
+	bool cfgIn;
+	bool cfgOut;
+	bool cfgNorm;
+} LAFilterValue;
+
+typedef struct {
+	GtkWidget *box;
+	GtkWidget *label;
+	GtkWidget *combobox;
+	GtkWidget *graph;
+	GtkWidget *graph2;
+
+	GtkWidget *paramLabel[LA_FIR_FILTER_PARAMS];
+	GtkAdjustment *paramAdj[LA_FIR_FILTER_PARAMS];
+	GtkWidget *paramSb[LA_FIR_FILTER_PARAMS];
+
+	uint8_t windowType;
+	double paramValue[LA_FIR_FILTER_PARAMS];
+	GtkWidget *externWidget;
+} LAFilterWindowWidget;
+
+typedef struct {
+	GtkWidget *vbox;
+	GtkWidget *name;
+	GtkWidget *combobox;
+
+	size_t start;
+	size_t end;
+	size_t value;
+	size_t length;
+
+	GtkWidget *externalWidget;
+} LABinarySizeWidget;
+
+typedef struct {
+	GtkWidget *vbox;
+	GtkWidget *label;
+	GtkAdjustment *adjustment;
+	GtkWidget *spinButton;
+
+	double value;
+	double min;
+	double max;
+	double step;
+	double page;
+	double digits;
+	GtkWidget *externalWidget;
+} LALabelSpinCombo;
+
+
+
 extern LAWindow *lawp;
 extern double defaultChannelColors[MAX_CHANNEL_COUNT][RGB_COUNT];
 extern double defaultMidLineColor[RGB_COUNT];
@@ -744,6 +1005,7 @@ void LARecordSaveCSV(GtkWidget *widget, LAWindow *law);
 gchar *LADialogSaveFile(LAWindow *law, const char *title, const char *filterName);
 gchar *LADialogOpenFile(LAWindow *law, const char *title, const char *filterName);
 void LADialogErrorGeneric(LAWindow *law, char *text);
+void LADialogWarningGeneric(LAWindow *law, char *text);
 void LADialogNumericEntryError(LAWindow *law);
 
 // status.c
@@ -776,9 +1038,95 @@ void LAOpenWaveformEditor(GtkWidget *widget, LAWindow *law);
 void LAOpenFileStreamer(GtkWidget *widget, LAWindow *law);
 
 // filterwindow.c
+LAErrorCode LAFilterGraphDrawBG(cairo_t *cr, double width, double height, bool midLine);
+LAErrorCode LAFilterGenerateFIRBuffer(LAFilterValue *laf, double **buffer, size_t *size);
+LAErrorCode LAFilterGenerateFIRSinc(double *buffer, size_t size, double f, int mode);
+// LAErrorCode LAFilterGraphDrawArray(cairo_t *cr, double *array, size_t size, double width, double height, double min, double max, bool changeColor);
+LAErrorCode LAFilterCompute(double *x, size_t nx, double *y, size_t ny, LAFilterValue *laf, LAFilterWindowWidget *windowWidget);
 void LAOnFilterButtonWave(GtkWidget *widget, LAWaveformEditor *lae);
 
 // preseteditor.c
+LAErrorCode LADeletePresetDataNodes(LAPFDataNode **start);
+LAErrorCode LAPresetFileInit(LAPresetFile *file);
+LAErrorCode LAPresetUpdateUI(LAPresetEditor *lap);
 void LAOpenPresetEditor(GtkWidget *widget, LAWindow *law);
+LAErrorCode LAPresetParseFile(LAPresetFile *preset, LAMappedFile *file, uint8_t *flags);
+
+// compiler/filereader.c
+bool LAMappedFileIsValid(LAMappedFile *file);
+bool LAMappedFileCanRead(LAMappedFile *file, size_t bytes);
+size_t LAMappedFileGetFreeBytes(LAMappedFile *file);
+LAErrorCode LAMappedFileReadBytes(LAMappedFile *file, uint8_t *output, size_t bytesRequest, size_t *bytesRead, bool strictSize);
+LAErrorCode LAMappedFileSeekBytes(LAMappedFile *file, size_t bytesRequest, bool strictSize);
+uint64_t LAParseIntFromArray(uint8_t *array, size_t size);
+LAErrorCode LAMappedFileReadI8(LAMappedFile *file, uint8_t *output);
+LAErrorCode LAMappedFileReadI16(LAMappedFile *file, uint16_t *output);
+LAErrorCode LAMappedFileReadI32(LAMappedFile *file, uint32_t *output);
+LAErrorCode LAMappedFileReadI64(LAMappedFile *file, uint64_t *output);
+
+// filterwindowfunc.c
+LAErrorCode LAFilterGenerateWindowArray(double *buffer, size_t size, LAFilterWindowType windowType, double *params, size_t paramCount);
+LAErrorCode LAFilterGenerateRectWindow(double *array, size_t size, double *params, size_t paramCount);
+LAErrorCode LAFilterGenerateTriWindow(double *array, size_t size, double *params, size_t paramCount);
+LAErrorCode LAFilterGenerateWelchWindow(double *array, size_t size, double *params, size_t paramCount);
+LAErrorCode LAFilterGenerateHannWindow(double *array, size_t size, double *params, size_t paramCount);
+LAErrorCode LAFilterGenerateHammingWindow(double *array, size_t size, double *params, size_t paramCount);
+LAErrorCode LAFilterGenerateTrapzWindow(double *array, size_t size, double *params, size_t paramCount);
+LAErrorCode LAFilterGenerateCircWindow(double *array, size_t size, double *params, size_t paramCount);
+LAErrorCode LAFilterGenerateSincWindow(double *array, size_t size, double *params, size_t paramCount);
+LAErrorCode LAFilterGenerateImpulseWindow(double *array, size_t size, double *params, size_t paramCount);
+LAErrorCode LAFilterGenerateBlackmanWindow(double *array, size_t size, double *params, size_t paramCount);
+LAErrorCode LAFilterGenerateBlackmanHarrisWindow(double *array, size_t size, double *params, size_t paramCount);
+LAErrorCode LAFilterGenerateKaiserWindow(double *array, size_t size, double *params, size_t paramCount);
+LAErrorCode LAFilterGenerateGaussianWindow(double *array, size_t size, double *params, size_t paramCount);
+LAErrorCode LAFilterGenerateNutallWindow(double *array, size_t size, double *params, size_t paramCount);
+LAErrorCode LAFilterGenerateFlattopWindow(double *array, size_t size, double *params, size_t paramCount);
+LAErrorCode LAFilterGenerateParzenWindow(double *array, size_t size, double *params, size_t paramCount);
+LAErrorCode LAFilterGenerateCosineSumWindow(double *array, size_t size, double *params, size_t paramCount);
+LAErrorCode LAFilterGenerateBlackmanNutallWindow(double *array, size_t size, double *params, size_t paramCount);
+LAErrorCode LAFilterGenerateSinePowerWindow(double *array, size_t size, double *params, size_t paramCount);
+LAErrorCode LAFilterGenerateApproxGaussianWindow(double *array, size_t size, double *params, size_t paramCount);
+LAErrorCode LAFilterGenerateTukeyWindow(double *array, size_t size, double *params, size_t paramCount);
+LAErrorCode LAFilterGeneratePlankTapperWindow(double *array, size_t size, double *params, size_t paramCount);
+LAErrorCode LAFilterGeneratePoissonWindow(double *array, size_t size, double *params, size_t paramCount);
+LAErrorCode LAFilterGenerateLanczosWindow(double *array, size_t size, double *params, size_t paramCount);
+LAErrorCode LAFilterGenerateNoiseWindow(double *array, size_t size, double *params, size_t paramCount);
+LAErrorCode LAFilterGenerateLogisticalWindow(double *array, size_t size, double *params, size_t paramCount);
+LAErrorCode LAFilterGenerateLogistical2Window(double *array, size_t size, double *params, size_t paramCount);
+LAErrorCode LAFilterGenerateDampedWindow(double *array, size_t size, double *params, size_t paramCount);
+LAErrorCode LAFilterGenerateGaussineWindow(double *array, size_t size, double *params, size_t paramCount);
+LAErrorCode LAFilterGeneratePolyChebyshevWindow(double *array, size_t size, double *params, size_t paramCount);
+LAErrorCode LAFilterGenerateSmoothTrapezoidalWindow(double *array, size_t size, double *params, size_t paramCount);
+LAErrorCode LAFilterGenerateRootChebyshevSmoothWindow(double *array, size_t size, double *params, size_t paramCount);
+LAErrorCode LAFilterGenerateCompactSineWindow(double *array, size_t size, double *params, size_t paramCount);
+LAErrorCode LAFilterWindowComboBox(GtkWidget **widget);
+
+// filteriir.c
+LAErrorCode LAFilterIIRCompile(double *x, size_t nx, double *y, size_t ny, double *a, size_t na, double *b, size_t nb);
+LAErrorCode LAFilterMovingAverageCompile(double *x, size_t nx, double *y, size_t ny, size_t l);
+
+// spectrumanalyzer.c
+gboolean LAOpenSpectrumAnalyzer(GtkWidget *widget, LAWindow *law);
+
+// windowWidget.c
+LAErrorCode LAWindowWidgetInit(LAFilterWindowWidget *widget);
+LAErrorCode LAWindowWidgetAdd(GtkWidget *container, LAFilterWindowWidget *widget);
+LAErrorCode LAWindowWidgetConnect(LAFilterWindowWidget *widget, GtkWidget *extWidget);
+
+// binarysizewidget.c
+LAErrorCode LABinarySizeWidgetInit(LABinarySizeWidget *lab, char *name, size_t start, size_t end, char *unit);
+LAErrorCode LABinarySizeWidgetAdd(LABinarySizeWidget *lab, GtkWidget *container);
+LAErrorCode LABinarySizeWidgetConnect(LABinarySizeWidget *lab, GtkWidget *externalWidget);
+
+// labelspincombo.c
+LAErrorCode LALabelSpinComboSetMin(LALabelSpinCombo *lal, double min);
+LAErrorCode LALabelSpinComboSetMax(LALabelSpinCombo *lal, double max);
+LAErrorCode LALabelSpinComboSetVisibility(LALabelSpinCombo *lal, bool visibility);
+LAErrorCode LALabelSpinComboInit(LALabelSpinCombo *lal, char *label, double value, double min, double max, double step, double page, size_t digits);
+LAErrorCode LALabelSpinComboAdd(LALabelSpinCombo *lal, GtkWidget *container);
+LAErrorCode LALabelSpinComboConnect(LALabelSpinCombo *lal, GtkWidget *widget);
+
+// linspace.c
+LAErrorCode LALinspace(double *x, double min, double max, size_t points);
 
 #endif // LIB_LOGIC_ANALYZER_H

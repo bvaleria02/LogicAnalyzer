@@ -43,7 +43,9 @@ gchar *LADialogSaveFile(LAWindow *law, const char *title, const char *filterName
 	}
 
 	gtk_widget_destroy(fileSelection);
+
 	return filename;
+	(void) filterName;
 }
 
 gchar *LADialogOpenFile(LAWindow *law, const char *title, const char *filterName){
@@ -74,6 +76,7 @@ gchar *LADialogOpenFile(LAWindow *law, const char *title, const char *filterName
 	}
 
 	gtk_widget_destroy(fileSelection);
+	(void) filterName;
 	return filename;
 }
 
@@ -96,4 +99,20 @@ void LADialogErrorGeneric(LAWindow *law, char *text){
 void LADialogNumericEntryError(LAWindow *law){
 	char *text = "The input value is not numeric.";
 	LADialogErrorGeneric(law, text);
+}
+
+void LADialogWarningGeneric(LAWindow *law, char *text){
+	GtkWidget *dialog;
+	GtkDialogFlags flags = GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL;
+
+    dialog = gtk_message_dialog_new(GTK_WINDOW(law->window),
+                                    flags,
+                                    GTK_MESSAGE_WARNING,
+                                    GTK_BUTTONS_CLOSE,
+									"%s",
+                                    text
+								);
+
+    gtk_dialog_run(GTK_DIALOG(dialog));
+    gtk_widget_destroy(dialog);
 }

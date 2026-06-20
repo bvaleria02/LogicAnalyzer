@@ -121,6 +121,7 @@ void *LAReadThread(void *vlaw){
 */
 	} while(1);
 
+	return NULL;
 }
 
 int LARedrawConnector(void *vlaw){

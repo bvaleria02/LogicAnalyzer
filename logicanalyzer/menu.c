@@ -14,22 +14,26 @@ void LAZoomLess(GtkWidget *widget, LAWindow *law){
 	}*/
 	law->rd.zoom -= 1;
 	LARedrawAllScopes(law);
+	(void) widget;
 }
 
 void LAZoomMore(GtkWidget *widget, LAWindow *law){
 	law->rd.zoom += 1;
 	LARedrawAllScopes(law);
+	(void) widget;
 }
 
 void LAZoomReset(GtkWidget *widget, LAWindow *law){
 	law->rd.zoom = 0;
 	LARedrawAllScopes(law);
+	(void) widget;
 }
 
 void LAZoomSet(GtkWidget *widget, LAWindow *law){
 	LAZoomSetWindow laz;
 	LACreateZoomSetWindow(law, &laz);
 	LARedrawAllScopes(law);
+	(void) widget;
 }
 
 void LAZoomClk(GtkWidget *widget, LAWindow *law){
@@ -39,96 +43,115 @@ void LAZoomClk(GtkWidget *widget, LAWindow *law){
 	g_print("Channel: %i\n", channel);
 */
 	LAZoomClockSyncWindow lazf;
-	LAZoomClockSyncWindow *laz = &lazf;
+	//LAZoomClockSyncWindow *laz = &lazf;
 
 	LACreateZoomClockSyncWindow(law, &lazf, "Zoom clock sync");
 	
 	LARedrawAllScopes(law);
+	(void) widget;
 }
 void LAMicroRewind(GtkWidget *widget, LAWindow *law){
 	law->rd.scopeOffset -= (LA_SMALL_INCREMENT_SCOPE / LAGetZoomMultiplier(law));
 	LARedrawAllScopes(law);
+	(void) widget;
 }
 
 void LAMicroAdvance(GtkWidget *widget, LAWindow *law){
 	law->rd.scopeOffset += (LA_SMALL_INCREMENT_SCOPE / LAGetZoomMultiplier(law));
 	LARedrawAllScopes(law);
+	(void) widget;
 }
 
 
 void LARewind(GtkWidget *widget, LAWindow *law){
 	law->rd.scopeOffset -= (LA_BUFFER_SIZE / LAGetZoomMultiplier(law));
 	LARedrawAllScopes(law);
+	(void) widget;
 }
 
 void LAAdvance(GtkWidget *widget, LAWindow *law){
 	law->rd.scopeOffset += (LA_BUFFER_SIZE / LAGetZoomMultiplier(law));
 	LARedrawAllScopes(law);
+	(void) widget;
 }
 
 void LAGoToStart(GtkWidget *widget, LAWindow *law){
 	law->rd.scopeOffset = LA_BUFFER_SIZE;
 	LARedrawAllScopes(law);
+	(void) widget;
 }
 
 void LAGoToEnd(GtkWidget *widget, LAWindow *law){
 	law->rd.scopeOffset = 0;
 	LARedrawAllScopes(law);
+	(void) widget;
 }
 
 void LAGoToUserDefined(GtkWidget *widget, LAWindow *law){
 	law->rd.scopeOffset = 0;
 	LARedrawAllScopes(law);
+	(void) widget;
 }
 
 void LAPauseUpdate(GtkWidget *widget, LAWindow *law){
 	law->rd.dontWrite = !(law->rd.dontWrite);	
 	LARedrawAllScopes(law);
+	(void) widget;
 }
 
 void LAPauseScroll(GtkWidget *widget, LAWindow *law){
 	law->rd.addDataOffset = !(law->rd.addDataOffset);	
 	LARedrawAllScopes(law);
+	(void) widget;
 }
 
 void LAToggleTimeRelative(GtkWidget *widget, LAWindow *law){
 	law->rd.showRelativeTime = !(law->rd.showRelativeTime);	
 	LARedrawAllScopes(law);
+	(void) widget;
 }
 
 void LAToggleTimeAbsolute(GtkWidget *widget, LAWindow *law){
 	law->rd.showAbsoluteTime = !(law->rd.showAbsoluteTime);	
 	timespec_get(&(law->rd.startTime), TIME_UTC);
 	LARedrawAllScopes(law);
+	(void) widget;
 }
+
 void LAToggleSampleRelative(GtkWidget *widget, LAWindow *law){
 	law->rd.showRelativeSample = !(law->rd.showRelativeSample);	
 	LARedrawAllScopes(law);
+	(void) widget;
 }
 
 void LAToggleSampleAbsolute(GtkWidget *widget, LAWindow *law){
 	law->rd.showAbsoluteSample = !(law->rd.showAbsoluteSample);	
 	LARedrawAllScopes(law);
+	(void) widget;
 }
 
 void LAToggleBufferEnd(GtkWidget *widget, LAWindow *law){
 	law->rd.showBufferEnd = !(law->rd.showBufferEnd);	
 	LARedrawAllScopes(law);
+	(void) widget;
 }
 
 void LAToggleRulerBuffer(GtkWidget *widget, LAWindow *law){
 	law->rd.showBufferRuler = !(law->rd.showBufferRuler);	
 	LARedrawAllScopes(law);
+	(void) widget;
 }
 
 void LAToggleRulerClock(GtkWidget *widget, LAWindow *law){
 	law->rd.showClockRuler = !(law->rd.showClockRuler);	
 	LARedrawAllScopes(law);
+	(void) widget;
 }
 
 void LAMuteAllMenu(GtkWidget *widget, LAWindow *law){
 	LAMuteAllChannels(law);
 	LARedrawAllScopes(law);
+	(void) widget;
 }
 
 void LACircularBufferView(GtkWidget *widget, LAWindow *law){
@@ -139,6 +162,7 @@ void LACircularBufferView(GtkWidget *widget, LAWindow *law){
 		LACallbackCircularBufferView,
 		&(law->mutexes.dataBufferAccess)
 	);
+	(void) widget;
 }
 
 void LAMenuConfigView(GtkWidget *widget, LAWindow *law){
@@ -151,6 +175,7 @@ void LAMenuConfigView(GtkWidget *widget, LAWindow *law){
 		LACallbackNormalBuffer,
 		NULL
 	);
+	(void) widget;
 }
 
 void LAMenuRecordUpdateConfig(LAWindow *law, LARecordDataMode mode){
@@ -228,6 +253,7 @@ gboolean LARecordAllChannels(GtkWidget *widget, LAWindow *law){
 	LAMenuRecordUpdateConfig(law, LA_RECORD_DATA_MODE_ALL);
 	LAMenuRecordUpdateDataMask(law, LA_RECORD_DATA_MODE_ALL);
 	law->bd.dataMode = LA_RECORD_DATA_MODE_ALL;
+	(void) widget;
 	return TRUE;
 }
 
@@ -239,6 +265,7 @@ gboolean LARecordVisibleChannels(GtkWidget *widget, LAWindow *law){
 	LAMenuRecordUpdateConfig(law, LA_RECORD_DATA_MODE_VISIBLE);
 	LAMenuRecordUpdateDataMask(law, LA_RECORD_DATA_MODE_VISIBLE);
 	law->bd.dataMode = LA_RECORD_DATA_MODE_VISIBLE;
+	(void) widget;
 	return TRUE;
 }
 
@@ -250,6 +277,7 @@ gboolean LARecordCustomChannels(GtkWidget *widget, LAWindow *law){
 	LAMenuRecordUpdateConfig(law, LA_RECORD_DATA_MODE_CUSTOM);
 	LAMenuRecordUpdateDataMask(law, LA_RECORD_DATA_MODE_CUSTOM);
 	law->bd.dataMode = LA_RECORD_DATA_MODE_CUSTOM;
+	(void) widget;
 	return TRUE;
 }
 
@@ -259,6 +287,7 @@ gboolean LARecordCustomSingleChannel(GtkWidget *widget, LAWindow *law){
 	}
 
 	LAMenuRecordUpdateDataMask(law, LA_RECORD_DATA_MODE_CUSTOM);
+	(void) widget;
 	return TRUE;
 }
 
@@ -291,6 +320,7 @@ void LAMenuCustomFileView(GtkWidget *widget, LAWindow *law){
 	);
 
 	fclose(fp);
+	(void) widget;
 }
 
 void LAWindowCreateMenu(LAWindow *law){
@@ -327,6 +357,11 @@ void LAWindowCreateMenu(LAWindow *law){
 	lam->listAdv		= gtk_menu_new();
 	gtk_menu_shell_append(GTK_MENU_SHELL(lam->menubar), lam->menuAdv);
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(lam->menuAdv), lam->listAdv);
+
+	lam->menuHelp		= gtk_menu_item_new_with_label("Help");
+	lam->listHelp		= gtk_menu_new();
+	gtk_menu_shell_append(GTK_MENU_SHELL(lam->menubar), lam->menuHelp);
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(lam->menuHelp), lam->listHelp);
 
 	lam->menuFileNew	= gtk_menu_item_new_with_label("New");
 	lam->menuFileLoad	= gtk_menu_item_new_with_label("Load");
@@ -396,6 +431,7 @@ void LAWindowCreateMenu(LAWindow *law){
 	lam->menuToolsClockFreq		= gtk_menu_item_new_with_label("Open clock frequency analyzer");
 	lam->menuToolsStreamFile	= gtk_menu_item_new_with_label("Open dac file stream");
 	lam->menuToolsPresetEditor	= gtk_menu_item_new_with_label("Open LAPF editor");
+	lam->menuToolsSpectrumAnal	= gtk_menu_item_new_with_label("Open Spectrum Analyzer");
 
 	lam->menuAdvSibelius	= gtk_menu_item_new_with_label("Quit Sibelius");
 	lam->menuAdvMusescore	= gtk_menu_item_new_with_label("New All");
@@ -473,6 +509,7 @@ void LAWindowCreateMenu(LAWindow *law){
 	gtk_menu_shell_append(GTK_MENU_SHELL(lam->listTools), lam->menuToolsClockFreq);
 	gtk_menu_shell_append(GTK_MENU_SHELL(lam->listTools), lam->menuToolsStreamFile);
 	gtk_menu_shell_append(GTK_MENU_SHELL(lam->listTools), lam->menuToolsPresetEditor);
+	gtk_menu_shell_append(GTK_MENU_SHELL(lam->listTools), lam->menuToolsSpectrumAnal);
 
 	gtk_menu_shell_append(GTK_MENU_SHELL(lam->listAdv), lam->menuAdvSibelius);
 	gtk_menu_shell_append(GTK_MENU_SHELL(lam->listAdv), lam->menuAdvMusescore);
@@ -544,6 +581,7 @@ void LAWindowCreateMenu(LAWindow *law){
 	g_signal_connect(lam->menuToolsClockFreq, 	"activate", G_CALLBACK(LAOpenClockFreqAnalyzer), law);
 	g_signal_connect(lam->menuToolsStreamFile, 	"activate", G_CALLBACK(LAOpenFileStreamer), law);
 	g_signal_connect(lam->menuToolsPresetEditor,"activate", G_CALLBACK(LAOpenPresetEditor), law);
+	g_signal_connect(lam->menuToolsSpectrumAnal,"activate", G_CALLBACK(LAOpenSpectrumAnalyzer), law);
 
 	// Advanced (advanced) is not ready... for now. You are aware.
 

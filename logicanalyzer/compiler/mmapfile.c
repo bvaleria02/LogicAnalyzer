@@ -40,6 +40,8 @@ LAErrorCode LAMemoryMapFile(char *filename, LAMappedFile *file){
 
 	file->length = sb.st_size;
 	file->capacity = sb.st_size;
+	file->readOffset = 0;
+
 	close(fd);
 	return LA_NO_ERROR;
 

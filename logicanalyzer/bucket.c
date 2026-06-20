@@ -241,5 +241,6 @@ LAErrorCode LACallbackHexViewBucketAll(void *src, size_t srcSize, size_t offset,
 		bucketIndex += 1;
 	}
 
+	(void) srcSize;
 	return LA_NO_ERROR;
 }

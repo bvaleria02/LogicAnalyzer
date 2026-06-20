@@ -20,7 +20,7 @@ void LAWindowCreateChannels(LAWindow *law){
 
 
 gboolean LAOnMouseScroll(GtkWidget *widget, GdkEventScroll *event, gpointer indexp){
-	uint8_t index = CONVERT_GPOINTER_TO_INT(index);
+	(void) indexp;
 
 	double dx = 0.0;
 	double dy = 0.0;
@@ -32,7 +32,7 @@ gboolean LAOnMouseScroll(GtkWidget *widget, GdkEventScroll *event, gpointer inde
 	guint state    = event->state;
 	gboolean ctrl  = state & GDK_CONTROL_MASK;
 	gboolean shift = state & GDK_SHIFT_MASK;
-	gboolean alt   = state & GDK_MOD1_MASK;
+//	gboolean alt   = state & GDK_MOD1_MASK;
 
 	if(ctrl){
 		lawp->rd.zoom += direction;
@@ -41,6 +41,7 @@ gboolean LAOnMouseScroll(GtkWidget *widget, GdkEventScroll *event, gpointer inde
 	}
 	
 	LARedrawAllScopes(lawp);
+	(void) widget;
 	return FALSE;
 }
 
@@ -102,11 +103,13 @@ void LAChannelChangeBit(GtkWidget *widget, LAChannel *channel){
 	channel->bit = atoi((const char *)text);
 	g_free(text);
 	gtk_widget_queue_draw(channel->scope);
+	(void) widget;
 }
 
 void LAChannelMute(GtkWidget *widget, LAChannel *channel){
 	channel->muted = !(channel->muted);
 	gtk_widget_queue_draw(channel->scope);
+	(void) widget;
 }
 
 void LAMuteAllChannels(LAWindow *law){
@@ -123,7 +126,7 @@ void LAEnableAllChannels(LAWindow *law){
 
 void LARedrawAllScopes(LAWindow *law){
 	for(uint8_t i = 0; i < MAX_CHANNEL_COUNT; i++){
-		gtk_widget_queue_draw(lawp->channel[i].scope);
+		gtk_widget_queue_draw(law->channel[i].scope);
 	}
 }
 
@@ -152,6 +155,7 @@ void LAChannelSolo(GtkWidget *widget, uintptr_t indexp){
 	}
 
 	LARedrawAllScopes(lawp);
+	(void) widget;
 }
 
 void LAChannelColorPicker(GtkWidget *widget, uintptr_t indexp){
@@ -170,5 +174,6 @@ void LAChannelColorPicker(GtkWidget *widget, uintptr_t indexp){
 		gtk_widget_queue_draw(channel->scope);
     }
 
-  gtk_widget_destroy(dialog);
+	(void) widget;
+	gtk_widget_destroy(dialog);
 }

@@ -171,6 +171,7 @@ gboolean LASaveSession(GtkWidget *widget, LAWindow *law){
 	uint32_t fileEndMagic = LA_FILE_END_MAGIC;
 	fwrite(&(fileEndMagic), 1, sizeof(uint32_t), fp);
 	fclose(fp);
+	(void) widget;
 	
 cleanup:
 	for(uint8_t i = 0; i < MAX_CHANNEL_COUNT; i++){
@@ -346,6 +347,7 @@ gboolean LALoadSession(GtkWidget *widget, LAWindow *law){
 	uint32_t nullAhPointer = 0;
 	LA_EXACT_MATCH_READ(fp, value, 4, LA_FILE_END_MAGIC, &nullAhPointer);
 	LAApplyChangesFromConfig(law, &lah, lac);
+	(void) widget;
 
 cleanup:
 	if(la_errno != LA_NO_ERROR){

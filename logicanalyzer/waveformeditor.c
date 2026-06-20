@@ -107,6 +107,7 @@ void LAOnWaveformEditorDraw(GtkWidget *widget, cairo_t *cr, LAWaveformEditor *la
 
 	LADrawCurrentWave(cr, lae->currentwave);
 
+	(void) widget;
 }
 
 void LAOnWaveSizeChange(GtkWidget *widget, LAWaveformEditor *lae){
@@ -115,6 +116,7 @@ void LAOnWaveSizeChange(GtkWidget *widget, LAWaveformEditor *lae){
 	uint32_t size = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lae->waveSize));
 	lae->currentwave->size = size;
 	gtk_widget_queue_draw(lae->wave);
+	(void) widget;
 }
 
 void LAWaveFuncRectangle(uint8_t *buffer, uint16_t size, double duty){
@@ -184,7 +186,6 @@ void LAWaveFuncExp(uint8_t *buffer, uint16_t size){
 void LAWaveFuncNoise(uint8_t *buffer, uint16_t size){
 	if(buffer == NULL) return;
 
-	double a = 0;
 	for(uint16_t i = 0; i < size; i++){
 		buffer[i] = rand() & 0xFF;
 	}
@@ -204,7 +205,7 @@ void LAOnPresetClicked(GtkWidget *widget, LAWaveformEditor *lae){
 	if(lae->currentwave == NULL) return;
 	
 	uint32_t preset = gtk_combo_box_get_active(GTK_COMBO_BOX(lae->presets));
-	uint16_t size   = lae->currentwave->size;
+	//uint16_t size   = lae->currentwave->size;
 
 	switch(preset){
 		case LA_WAVE_PRESET_CUSTOM		:	break;
@@ -237,6 +238,7 @@ void LAOnPresetClicked(GtkWidget *widget, LAWaveformEditor *lae){
 	}
 
 	gtk_widget_queue_draw(lae->wave);
+	(void) widget;
 }
 
 void LAOnWaveFlat(GtkWidget *widget, LAWaveformEditor *lae){
@@ -248,6 +250,7 @@ void LAOnWaveFlat(GtkWidget *widget, LAWaveformEditor *lae){
 	}
 
 	gtk_widget_queue_draw(lae->wave);
+	(void) widget;
 }
 
 void LAWaveUpdateWaveSelectUpper(LAWaveformEditor *lae){
@@ -283,6 +286,7 @@ void LAOnWaveSelectorChange(GtkWidget *widget, LAWaveformEditor *lae){
 	}
 
 	gtk_widget_queue_draw(lae->wave);
+	(void) widget;
 }
 
 void LAOnWaveNew(GtkWidget *widget, LAWaveformEditor *lae){
@@ -307,6 +311,7 @@ void LAOnWaveNew(GtkWidget *widget, LAWaveformEditor *lae){
 
 	LAWaveUpdateWaveSelectUpper(lae);
 	gtk_widget_queue_draw(lae->wave);
+	(void) widget;
 }
 
 void LAOnWaveDelete(GtkWidget *widget, LAWaveformEditor *lae){
@@ -317,6 +322,7 @@ void LAOnWaveDelete(GtkWidget *widget, LAWaveformEditor *lae){
 
 	LAWaveUpdateWaveSelectUpper(lae);
 	gtk_widget_queue_draw(lae->wave);
+	(void) widget;
 }
 
 void LAOnWaveDeleteAll(GtkWidget *widget, LAWaveformEditor *lae){
@@ -324,6 +330,7 @@ void LAOnWaveDeleteAll(GtkWidget *widget, LAWaveformEditor *lae){
 	lae->wavetable = NULL;
 	lae->currentwave = NULL;
 	gtk_widget_queue_draw(lae->wave);
+	(void) widget;
 }
 
 void LAWaveForceSelectorChange(LAWaveformEditor *lae, int32_t delta){
@@ -381,6 +388,7 @@ void LAOnWaveMoveLeft(GtkWidget *widget, LAWaveformEditor *lae){
 
 	LAWaveForceSelectorChange(lae, -1);
 	gtk_widget_queue_draw(lae->wave);
+	(void) widget;
 }
 
 void LAOnWaveMoveRight(GtkWidget *widget, LAWaveformEditor *lae){
@@ -432,6 +440,7 @@ void LAOnWaveMoveRight(GtkWidget *widget, LAWaveformEditor *lae){
 
 	LAWaveForceSelectorChange(lae, 1);
 	gtk_widget_queue_draw(lae->wave);
+	(void) widget;
 }
 
 void LAWaveChangeWaveformFromCoordinates(LAWaveformEditor *lae, double x, double y){
@@ -464,6 +473,8 @@ gboolean LAOnWaveformEditorClick(GtkWidget *widget, GdkEventButton *event, LAWav
 	lae->mouseClick = 1;
 
 	LAWaveChangeWaveformFromCoordinates(lae, x, y);
+
+	(void) widget;
 	return TRUE;
 }
 
@@ -471,6 +482,8 @@ gboolean LAOnWaveformEditorRelease(GtkWidget *widget, GdkEventButton *event, LAW
 	if(lae->currentwave == NULL) return TRUE;
 
 	lae->mouseClick = 0;
+	(void) widget;
+	(void) event;
 	return TRUE;
 }
 
@@ -482,6 +495,7 @@ gboolean LAOnWaveformEditorMotion(GtkWidget *widget, GdkEventMotion *event, LAWa
 	double y = event->y;
 	LAWaveChangeWaveformFromCoordinates(lae, x, y);
 
+	(void) widget;
 	return TRUE;
 }
 
@@ -495,6 +509,7 @@ void LAOnWaveSendThis(GtkWidget *widget, LAWaveformEditor *lae){
 
 	LAPrepareProtocolV2Basic(&p, LA_COMMAND_TEST_DAC_WRAP, lae->currentwave->size);
 	LASendSerialV2(lawp, &p);
+	(void) widget;
 }
 
 void LAOpenWaveformEditor(GtkWidget *widget, LAWindow *law){
@@ -617,8 +632,9 @@ void LAOpenWaveformEditor(GtkWidget *widget, LAWindow *law){
 	gtk_widget_set_can_focus(lae->window, TRUE);
 	gtk_widget_grab_focus(lae->window);
 	gtk_widget_show_all(lae->window);
-	int response = gtk_dialog_run(GTK_DIALOG(lae->window));
+	gtk_dialog_run(GTK_DIALOG(lae->window));
 	gtk_widget_destroy(lae->window);
 
 	LADestroyWaveformAll(&(lae->wavetable));
+	(void) widget;
 }

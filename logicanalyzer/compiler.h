@@ -15,12 +15,6 @@ typedef enum {
 	LA_SPLIT_STATUS_MARKING = 1,
 } LASplitStatus;
 
-typedef struct {
-	uint8_t *data;
-	size_t capacity;
-	size_t length;
-} LAMappedFile;
-
 typedef struct _LANodeDefine{
 	char *label;
 	size_t labelLength;

@@ -9,6 +9,7 @@
 void LAOkayZoomSetWindow(GtkWidget *widget, LAZoomSetWindow *laz){
 	double value = gtk_spin_button_get_value(GTK_SPIN_BUTTON(laz->spin));
 	lawp->rd.zoom = ((int) value);
+	(void) widget;
 }
 
 void LACreateZoomSetWindow(LAWindow *law, LAZoomSetWindow *laz){

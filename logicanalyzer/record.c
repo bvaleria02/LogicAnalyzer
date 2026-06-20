@@ -44,24 +44,29 @@ void LARecordStart(GtkWidget *widget, LAWindow *law){
 
 	atomic_store(&(law->bd.bucketWrite), 1);
 	atomic_store(&(law->bd.hasStopped), 0);
+	(void) widget;
 }
 
 void LARecordStop(GtkWidget *widget, LAWindow *law){
 	atomic_store(&(law->bd.bucketWrite), 0);
 	atomic_store(&(law->bd.hasStopped), 1);
+	(void) widget;
 }
 
 void LARecordPause(GtkWidget *widget, LAWindow *law){
 	atomic_store(&(law->bd.bucketWrite), 0);
+	(void) widget;
 }
 
 void LARecordDelete(GtkWidget *widget, LAWindow *law){
 	LADestroyAllRecords(law);
 	atomic_store(&(law->bd.hasStopped), 1);
+	(void) widget;
 }
 
 void LARecordView(GtkWidget *widget, LAWindow *law){
 	LABucketViewAll(law->bd.bucketStart);
+	(void) widget;
 }
 
 void LARecordView2(GtkWidget *widget, LAWindow *law){
@@ -74,6 +79,7 @@ void LARecordView2(GtkWidget *widget, LAWindow *law){
 		LACallbackHexViewBucketAll,
 		&(law->mutexes.bucketAccess)
 	);
+	(void) widget;
 }
 
 void LAGetFileFromDialog(GtkWidget *widget, gchar **filename){
@@ -87,6 +93,7 @@ void LAGetFileFromDialog(GtkWidget *widget, gchar **filename){
 	}
 
 	gtk_widget_destroy(widget);
+	(void) widget;
 }
 
 void LARecordSaveBin(GtkWidget *widget, LAWindow *law){
@@ -108,6 +115,7 @@ void LARecordSaveBin(GtkWidget *widget, LAWindow *law){
 	}
 
 	pthread_mutex_unlock(&(law->mutexes.bucketAccess));
+	(void) widget;
 	return;
 }
 
@@ -130,5 +138,6 @@ void LARecordSaveCSV(GtkWidget *widget, LAWindow *law){
 	}
 
 	pthread_mutex_unlock(&(law->mutexes.bucketAccess));
+	(void) widget;
 	return;
 }

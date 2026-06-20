@@ -221,6 +221,7 @@ void LAOnPianoDraw(GtkWidget *widget, cairo_t *cr, LATestPianoMenu *lap){
 	if(lap->lastKey != KEYCODE_MUTE && lap->lastKey >= lowerLimit && lap->lastKey <= upperLimit){
 		LAPianoDrawKey(cr, LAKeys[lap->lastKey - lowerLimit], &highlightColor);
 	}
+	(void) widget;
 }
 
 void LAPianoAddOctave(LATestPianoMenu *lap){
@@ -276,6 +277,7 @@ void LAOnPianoPanic(GtkWidget *widget, LATestPianoMenu *lap){
 	LASendBasicSerial(lawp, LA_COMMAND_TEST_DAC_MUTE, 1);
 	lap->lastKey = KEYCODE_MUTE;
 	gtk_widget_queue_draw(lap->piano);
+	(void) widget;
 }
 
 gboolean LAOnKeyPressPiano(GtkWidget *widget, GdkEventKey *event, LATestPianoMenu *lap){
@@ -298,6 +300,7 @@ gboolean LAOnKeyPressPiano(GtkWidget *widget, GdkEventKey *event, LATestPianoMen
 	}
 
 	return response;
+	(void) widget;
 }
 
 void LAOpenTestPiano(GtkWidget *widget, LAWindow *law){
@@ -367,6 +370,7 @@ void LAOpenTestPiano(GtkWidget *widget, LAWindow *law){
 	gtk_widget_set_can_focus(lap->window, TRUE);
 	gtk_widget_grab_focus(lap->window);
 	gtk_widget_show_all(lap->window);
-	int response = gtk_dialog_run(GTK_DIALOG(lap->window));
+	gtk_dialog_run(GTK_DIALOG(lap->window));
 	gtk_widget_destroy(lap->window);
+	(void) widget;
 }

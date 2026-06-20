@@ -77,6 +77,7 @@ void *LAThreadFileSender(void *vlas){
 
 void LAFileSenderRewind(GtkWidget *widget, LAFileStreamer *las){
 	atomic_store(&(las->offset), 0);
+	(void) widget;
 }
 
 void LAFileSenderPlay(GtkWidget *widget, LAFileStreamer *las){
@@ -84,6 +85,7 @@ void LAFileSenderPlay(GtkWidget *widget, LAFileStreamer *las){
 	LAPrepareProtocolV2Basic(&p, LA_COMMAND_TEST_DAC_MUTE, 0);
 	LASendSerialV2(lawp, &p);
 	atomic_store(&(las->playback), 1);
+	(void) widget;
 }
 
 void LAFileSenderPause(GtkWidget *widget, LAFileStreamer *las){
@@ -91,6 +93,7 @@ void LAFileSenderPause(GtkWidget *widget, LAFileStreamer *las){
 	LAPrepareProtocolV2Basic(&p, LA_COMMAND_TEST_DAC_MUTE, 1);
 	LASendSerialV2(lawp, &p);
 	atomic_store(&(las->playback), 0);
+	(void) widget;
 }
 
 void LAOpenFileStreamer(GtkWidget *widget, LAWindow *law){
@@ -156,7 +159,7 @@ void LAOpenFileStreamer(GtkWidget *widget, LAWindow *law){
 	pthread_create(&(las->sendThread), NULL, LAThreadFileSender, las);
 
 	gtk_widget_show_all(las->window);
-	int response = gtk_dialog_run(GTK_DIALOG(las->window));
+	gtk_dialog_run(GTK_DIALOG(las->window));
 
 	atomic_store(&(las->closeThread), 1);
 	pthread_join(las->sendThread, NULL);
@@ -164,4 +167,5 @@ void LAOpenFileStreamer(GtkWidget *widget, LAWindow *law){
 
 	code = LAMemoryUnmapFile(&file);
 	if(code) return;
+	(void) widget;
 }

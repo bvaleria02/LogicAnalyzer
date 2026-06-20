@@ -14,6 +14,7 @@
 void LATerminateHexViewWindow(GtkWidget *widget, LAHexView *lah){
 	gtk_window_close(GTK_WINDOW(lah->window));
 	gtk_main_quit();
+	(void) widget;
 }
 
 LAErrorCode LACallbackHexViewSingleBucket(void *src, size_t srcSize, size_t offset, uint8_t *viewBuffer, size_t viewSize, size_t *bytesRead){
@@ -42,6 +43,7 @@ LAErrorCode LACallbackHexViewSingleBucket(void *src, size_t srcSize, size_t offs
 		viewBuffer[k] = bucket->data[i];
 	}
 
+	(void) srcSize;
 	return LA_NO_ERROR;
 }
 
@@ -109,6 +111,7 @@ LAErrorCode LACallbackFileView(void *src, size_t srcSize, size_t offset, uint8_t
 	//g_print("Length: %lu\n", length);
 	(*bytesRead) = length;
 
+	(void) srcSize;
 	return LA_NO_ERROR;
 }
 
@@ -279,6 +282,8 @@ LAErrorCode LAHexViewHandleOffsetChange(GtkWidget *widget, LAHexView *lah){
 
 	g_print("Offset read: %lu\n", offset);
 	LAHexViewUpdateData(lah);
+	(void) widget;
+	return LA_NO_ERROR;
 }
 
 
@@ -333,6 +338,7 @@ gboolean LAHexViewHandleKeyboard(GtkWidget *widget, GdkEventKey *event, LAHexVie
 	}
 
 
+	(void) widget;
 	return response;
 }
 
@@ -422,7 +428,7 @@ LAErrorCode LACreateHexView(LAWindow *law, void *buffer, size_t size, LAHexDumpC
 
 	LAHexViewUpdateData(lah);
 	gtk_widget_show_all(lah->window);
-	int response = gtk_dialog_run(GTK_DIALOG(lah->window));
+	gtk_dialog_run(GTK_DIALOG(lah->window));
 	gtk_widget_destroy(lah->window);
 
 	return LA_NO_ERROR;

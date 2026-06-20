@@ -56,6 +56,7 @@ gboolean LAHandleMainKeyPress(GtkWidget *widget, GdkEventKey *event, LAWindow *l
 	}
 
 	return response;
+	(void) widget;
 }
 
 void LAWindowCreate(LAWindow *law){
@@ -127,6 +128,7 @@ void LATerminateWindow(GtkWidget *widget, GtkWidget **window){
 	(*window) = NULL;
 
 	gtk_main_quit();
+	(void) widget;
 }
 
 void LATerminateZoomSetWindow(GtkWidget *widget, LAZoomSetWindow *laz){
@@ -141,10 +143,12 @@ void LATerminateZoomSetWindow(GtkWidget *widget, LAZoomSetWindow *laz){
 
 	laz->window = NULL;
 	laz->isActive = 0;
+	(void) widget;
 }
 
 void LACloseWindow(GtkWidget *widget, GtkWidget *window){
 	gtk_window_close(GTK_WINDOW(window));
+	(void) widget;
 }
 
 double LAGetZoomMultiplier(LAWindow *law){

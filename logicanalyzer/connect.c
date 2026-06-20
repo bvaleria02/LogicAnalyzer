@@ -19,7 +19,7 @@
 #define COM_RATE B2000000
 
 void LAWindowCreateConnect(LAWindow *law){
-	
+(void) law;
 }
 
 void LAHandleDisconnect(LAWindow *law, LAConnectWindow *lac){
@@ -35,7 +35,7 @@ void LAHandleDisconnect(LAWindow *law, LAConnectWindow *lac){
 }
 
 void LAHandleConnect(LAWindow *law, LAConnectWindow *lac){
-	if(law->connect.readThread != -1){
+	if(law->connect.readThread != -1UL){
 		g_print("Return aaaaaa\n");
 		return;
 	}
@@ -83,6 +83,8 @@ void LAButtonConnectCallback(GtkWidget *widget, LAConnectWindow *lac){
 		lawp->rd.renderSourceId = g_timeout_add(50, LAWindowUpdateLoopConnector, lawp);			
 		lawp->rd.hasRenderFunctionAdded = 1;
 	}
+
+	(void) widget;
 	return;
 }
 
@@ -158,7 +160,7 @@ void LASendSerial(LASerialProtocol *p, LAWindow *law){
 	switch(rc){
 		case ETIMEDOUT:	g_print("ACK timedout\n");
 						break;
-		defaut:			g_print("ACK received\n");
+		default:		g_print("ACK received\n");
 						break;
 	}
 
@@ -193,7 +195,7 @@ void LASendSerialV2(LAWindow *law, LASerialV2Protocol *p){
 	switch(rc){
 		case ETIMEDOUT:	g_print("ACK timedout\n");
 						break;
-		defaut:			g_print("ACK received\n");
+		default:		g_print("ACK received\n");
 						break;
 	}
 
@@ -237,11 +239,13 @@ void  LAButtonCommandSendCallback(GtkWidget *widget, LACommandWindow *lac){
 	LASendBasicSerial(lawp, command, value);
 	LASerialCommandLoopback(lawp, command, value);
 	gtk_text_buffer_set_text(GTK_TEXT_BUFFER(lac->textBuffer), "Command sent.", -1);
+	(void) widget;
 }
 
 void LATerminateConnectWindow(GtkWidget *widget, LAConnectWindow *lac){
 	gtk_window_close(GTK_WINDOW(lac->window));
 	gtk_main_quit();
+	(void) widget;
 }
 
 int LACreateConnectWindow(GtkWidget *widget, LAWindow *law){
@@ -291,15 +295,17 @@ int LACreateConnectWindow(GtkWidget *widget, LAWindow *law){
 	g_signal_connect(lac->connect, "clicked", G_CALLBACK(LAButtonConnectCallback), lac);
 
 	gtk_widget_show_all(lac->window);
-	int response = gtk_dialog_run(GTK_DIALOG(lac->window));
+	gtk_dialog_run(GTK_DIALOG(lac->window));
 	gtk_widget_destroy(lac->window);
 
+	(void) widget;
 	return TRUE;
 }
 
 void LATerminateCommandWindow(GtkWidget *widget, LACommandWindow *lac){
 	gtk_window_close(GTK_WINDOW(lac->window));
 	gtk_main_quit();
+	(void) widget;
 }
 
 int LACreateCommandWindow(GtkWidget *widget, gpointer *commandp){
@@ -373,8 +379,9 @@ int LACreateCommandWindow(GtkWidget *widget, gpointer *commandp){
 
 	gtk_widget_show_all(lac->window);
 
-	int response = gtk_dialog_run(GTK_DIALOG(lac->window));
+	gtk_dialog_run(GTK_DIALOG(lac->window));
 	gtk_widget_destroy(lac->window);
 
+	(void) widget;
 	return TRUE;
 }

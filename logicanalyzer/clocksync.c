@@ -471,6 +471,8 @@ void LAClockSyncApply(GtkWidget *widget, LAZoomClockSyncWindow *laz){
 
 	LAClockSyncDeleteAllNodes(&(laz->splitNodeStart));
 	if(laz->buffer != NULL) free(laz->buffer);
+
+	(void) widget;
 }
 
 void LAClockSyncBufferSelectChanged(GtkWidget *widget, LAZoomClockSyncWindow *laz){
@@ -483,6 +485,8 @@ void LAClockSyncBufferSelectChanged(GtkWidget *widget, LAZoomClockSyncWindow *la
 	} else {
 		gtk_widget_set_sensitive(laz->buSelEntry, FALSE);
 	}
+
+	(void) widget;
 }
 
 void LAClockSyncClickedDiscardOutliers(GtkWidget *widget, LAZoomClockSyncWindow *laz){
@@ -493,6 +497,8 @@ void LAClockSyncClickedDiscardOutliers(GtkWidget *widget, LAZoomClockSyncWindow 
 	} else {
 		gtk_widget_set_sensitive(laz->opDiscardOutliersSB, FALSE);
 	}
+
+	(void) widget;
 }
 
 void LAClockSyncClickedPeriodLess(GtkWidget *widget, LAZoomClockSyncWindow *laz){
@@ -503,6 +509,8 @@ void LAClockSyncClickedPeriodLess(GtkWidget *widget, LAZoomClockSyncWindow *laz)
 	} else {
 		gtk_widget_set_sensitive(laz->opPeriodLessSB, FALSE);
 	}
+
+	(void) widget;
 }
 
 void LAClockSyncClickedPeriodMore(GtkWidget *widget, LAZoomClockSyncWindow *laz){
@@ -513,6 +521,8 @@ void LAClockSyncClickedPeriodMore(GtkWidget *widget, LAZoomClockSyncWindow *laz)
 	} else {
 		gtk_widget_set_sensitive(laz->opPeriodMoreSB, FALSE);
 	}
+
+	(void) widget;
 }
 
 void LAClockSyncPreset(LAZoomClockSyncWindow *laz){
@@ -694,8 +704,10 @@ void LACreateZoomClockSyncWindow(LAWindow *law, LAZoomClockSyncWindow *laz, cons
 }
 
 void LAOpenClockFreqAnalyzer(GtkWidget *widget, LAWindow *law){
+	(void) widget;
 	LAZoomClockSyncWindow lazv;
 	LAZoomClockSyncWindow *laz = &lazv;
 
 	LACreateZoomClockSyncWindow(law, laz, "Clock frequency analyzer");
+	return;
 }

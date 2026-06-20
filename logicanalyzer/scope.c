@@ -46,7 +46,7 @@ void LAChannelDrawScopeData(cairo_t *cr, uint8_t index, uint8_t channelBit){
 	cairo_set_source_rgb(cr, channel->r, channel->g, channel->b);
 	cairo_move_to(cr, x0, y0);
 
-	double zoomMultiplier = LAGetZoomMultiplier(lawp);
+	//double zoomMultiplier = LAGetZoomMultiplier(lawp);
 /*
 	for(uint16_t i = 0; i < LA_LARGE_BUFFER_SIZE; i++){
 		bit = !((lawp->dataBuffer[LAGetDataBufferIndexScope(lawp, i)] >> channelBit) & 0x1);
@@ -238,6 +238,7 @@ void LAChannelDisplayBufferEnd(cairo_t *cr, uint8_t index){
 	cairo_move_to(cr, x + SCOPE_BUFFER_START_TEXT_DX, y0 + SCOPE_LABEL_TIME_DY);
 	cairo_show_text(cr, "Buffer start");
 	cairo_stroke(cr);
+	(void) index;
 }
 
 void LAChannelDrawBufferGrid(cairo_t *cr, uint8_t index){
@@ -250,7 +251,7 @@ void LAChannelDrawBufferGrid(cairo_t *cr, uint8_t index){
 	uint16_t size;
 	LAGetWindowLowerSample(lawp, &lower, &upper, &size);
 
-	int32_t lowerS = (int32_t) upper - (int32_t) (size * LAGetZoomMultiplier(lawp));
+	//int32_t lowerS = (int32_t) upper - (int32_t) (size * LAGetZoomMultiplier(lawp));
 	int32_t upperN = upper - lawp->rd.dataOffset;
 	int32_t lowerN = lower - lawp->rd.dataOffset;
 
@@ -279,6 +280,7 @@ void LAChannelDrawBufferGrid(cairo_t *cr, uint8_t index){
 		cairo_stroke(cr);
 	}
 
+	(void) index;
 }
 
 void LAChannelOnDraw(GtkWidget *widget, cairo_t *cr, uintptr_t indexp){
@@ -296,6 +298,7 @@ void LAChannelOnDraw(GtkWidget *widget, cairo_t *cr, uintptr_t indexp){
 
 	LAChannelDisplayTime(cr, index);
 	LAChannelDisplayBufferEnd(cr, index);
+	(void) widget;
 }
 
 
