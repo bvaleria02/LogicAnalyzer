@@ -87,6 +87,8 @@ all:
 #	$(CC) $(FLAGS) $(NMFLAGS) -c ./logicanalyzer/numericMethods/newtonRaphson.c -o ./bin/numericMethodsNewtonRaphson.o
 #	$(CC) $(FLAGS) $(NMFLAGS) -c ./logicanalyzer/numericMethods/secant.c -o ./bin/numericMethodsSecant.o
 #	$(CC) $(FLAGS) $(NMFLAGS) -c ./logicanalyzer/numericMethods/operations.c -o ./bin/numericMethodsOperations.o
+	$(CC) $(FLAGS) -c ./logicanalyzer/structures/linkstore.c -o ./bin/structsLinkStore.o
+	$(CC) $(FLAGS) -c ./logicanalyzer/structures/model.c -o ./bin/structsModel.o
 	$(CC) $(FLAGS) -c ./logicanalyzer/shaders/loader.c -o ./bin/shadersLoader.o
 	$(CC) $(FLAGS) -c ./logicanalyzer/draw/fftfreq.c -o ./bin/drawFFTFreq.o
 	$(CC) $(FLAGS) -c ./logicanalyzer/dialogs.c -o ./bin/dialogs.o
@@ -160,6 +162,7 @@ bigint:
 	$(CC) $(FLAGS) -c ./logicanalyzer/la_bigint/clz.c -o ./bin/bigintCLZ.o
 	$(CC) $(FLAGS) -c ./bigint.c -o ./bin/main.o
 	$(CC) $(FLAGS) $(F90_FLAGS_2) ./bin/*.o -o $(TARGET_BI) $(LINKS)
+	rm -r ./*.mod
 	./$(TARGET_BI)
 
 windows:
@@ -168,5 +171,5 @@ windows:
 opengl:
 	#$(CC) `pkg-config --cflags glfw3` -lglfw3 -lGL -lX11 -lpthread -lXrandr -lXi -ldl o.c -o ./o_test.elf `pkg-config --libs glfw3`
 	$(CC) $(FLAGS) $(NMFLAGS) -r ./logicanalyzer/matrix/*.c -o ./bin/matrixAll.o
-	$(CC) $(FLAGS) `pkg-config --cflags glfw3` ./logicanalyzer/glad/glad.c o.c ./bin/matrixAll.o -o ./o_test.elf `pkg-config --libs glfw3` -lm
+	$(CC) $(FLAGS) `pkg-config --cflags glfw3` ./logicanalyzer/shaders/*.c ./logicanalyzer/glad/glad.c o2.c ./bin/matrixAll.o -o ./o_test.elf `pkg-config --libs glfw3` -lm
 	./o_test.elf
