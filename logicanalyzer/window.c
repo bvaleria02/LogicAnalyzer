@@ -3,9 +3,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "liblogicanalyzer.h"
 #include <pthread.h>
 #include <math.h>
+
+#include "liblogicanalyzer.h"
+#include "enums.h"
+#include "error.h"
+#include "utils.h"
+#include "types.h"
+#include "gtk_funcs.h"
+#include "serial.h"
+#include "clockset.h"
 
 void destroyWindow(GtkWidget *widget, gpointer *pointer){
 

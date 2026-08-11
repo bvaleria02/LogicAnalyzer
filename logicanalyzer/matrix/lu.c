@@ -1,8 +1,10 @@
-#include "../liblogicanalyzer.h"
-#include "matrix.h"
 #include <stdlib.h>
 #include <stdbool.h>
 #include <math.h>
+#include "../liblogicanalyzer.h"
+#include "../error.h"
+#include "../utils.h"
+#include "matrix.h"
 
 LAErrorCode LAMatLU(LAMat_t *a, LAMat_t *l, LAMat_t *u, LAMat_t *p){
 	LA_HANDLE_NULLPTR(a, LA_PROPAGATE_ERROR);

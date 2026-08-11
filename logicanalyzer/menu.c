@@ -3,9 +3,21 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "liblogicanalyzer.h"
 #include <time.h>
 #include <pthread.h>
+
+#include "liblogicanalyzer.h"
+#include "error.h"
+#include "enums.h"
+#include "types.h"
+#include "utils.h"
+#include "gtk_funcs.h"
+#include "clockset.h"
+#include "clocksync.h"
+#include "preset.h"
+#include "hexview.h"
+#include "dialog.h"
+#include "serial.h"
 
 void LAZoomLess(GtkWidget *widget, LAWindow *law){
 	/*

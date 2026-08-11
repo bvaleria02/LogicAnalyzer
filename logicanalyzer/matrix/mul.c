@@ -1,7 +1,9 @@
-#include "../liblogicanalyzer.h"
-#include "matrix.h"
 #include <stdlib.h>
 #include <stdbool.h>
+#include "../liblogicanalyzer.h"
+#include "../error.h"
+#include "../utils.h"
+#include "matrix.h"
 
 LAErrorCode LAMatMul_backend(LAMat_t *m1, LAMat_t *m2, LAMat_t *m3, bool overwriteM3, double factor){
 	if(!(LAMatIsValid(m1)))	goto matrix_error;

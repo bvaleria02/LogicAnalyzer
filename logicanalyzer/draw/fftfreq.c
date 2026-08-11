@@ -1,5 +1,3 @@
-#include "../liblogicanalyzer.h"
-#include "fftfreq.h"
 #include <gtk/gtk.h>
 #include <cairo.h>
 #include <stdio.h>
@@ -7,6 +5,10 @@
 #include <stdlib.h>
 #include <math.h>
 #include <stdbool.h>
+#include "../liblogicanalyzer.h"
+#include "../error.h"
+#include "../utils.h"
+#include "fftfreq.h"
 
 LAErrorCode LAFilterGraphDrawArray(cairo_t *cr, double *array, size_t size, double width, double height, double min, double max, bool changeColor){
 	LA_HANDLE_NULLPTR(cr, LA_PROPAGATE_ERROR);

@@ -3,11 +3,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "liblogicanalyzer.h"
-#include "compiler.h"
 #include <time.h>
 #include <pthread.h>
 #include <stdatomic.h>
+#include "liblogicanalyzer.h"
+#include "error.h"
+#include "utils.h"
+#include "preset.h"
+#include "dialog.h"
+#include "gtk_funcs.h"
+#include "compiler.h"
+#include "compiler/file.h"
 
 #define DEFAULT_HEADER_HEIGHT 	7
 #define DEFAULT_HEADER_WIDTH 	5

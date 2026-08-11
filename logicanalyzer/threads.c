@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "liblogicanalyzer.h"
 
 #include <fcntl.h>
 #include <errno.h>
@@ -15,6 +14,15 @@
 #include <pthread.h>
 #include <stdatomic.h>
 
+#include "liblogicanalyzer.h"
+#include "error.h"
+#include "utils.h"
+#include "types.h"
+#include "threads.h"
+#include "gtk_funcs.h"
+#include "bucket.h"
+#include "serial.h"
+#include "enums.h"
 
 void LAHandleBucketWrite(uint8_t *buffer, int16_t size){
 	pthread_mutex_lock(&(lawp->mutexes.bucketAccess));

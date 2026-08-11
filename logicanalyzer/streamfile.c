@@ -3,11 +3,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "liblogicanalyzer.h"
-#include "compiler.h"
 #include <time.h>
 #include <pthread.h>
 #include <stdatomic.h>
+
+#include "liblogicanalyzer.h"
+#include "error.h"
+#include "utils.h"
+#include "types.h"
+#include "compiler.h"
+#include "serial.h"
+#include "gtk_funcs.h"
+#include "dialog.h"
 
 typedef struct {
 	GtkWidget *window;

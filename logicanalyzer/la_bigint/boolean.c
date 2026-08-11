@@ -1,8 +1,10 @@
-#include "../liblogicanalyzer.h"
-#include "laBigInt.h"
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include "../liblogicanalyzer.h"
+#include "../error.h"
+#include "../utils.h"
+#include "laBigInt.h"
 
 // If error, always return false
 // LA_HANDLE_NULLPTR(ptr, false);

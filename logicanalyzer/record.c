@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "liblogicanalyzer.h"
 
 #include <fcntl.h>
 #include <errno.h>
@@ -14,6 +13,15 @@
 
 #include <pthread.h>
 #include <stdatomic.h>
+
+#include "liblogicanalyzer.h"
+#include "types.h"
+#include "bucket.h"
+#include "error.h"
+#include "utils.h"
+#include "gtk_funcs.h"
+#include "hexview.h"
+#include "dialog.h"
 
 void LADestroyAllRecords(LAWindow *law){
 	pthread_mutex_lock(&(law->mutexes.bucketAccess));

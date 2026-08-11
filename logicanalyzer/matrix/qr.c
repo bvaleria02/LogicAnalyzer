@@ -1,8 +1,10 @@
-#include "../liblogicanalyzer.h"
-#include "matrix.h"
 #include <stdlib.h>
 #include <stdbool.h>
 #include <math.h>
+#include "../liblogicanalyzer.h"
+#include "../error.h"
+#include "../utils.h"
+#include "matrix.h"
 
 LAErrorCode LAMatQR(LAMat_t *a, LAMat_t *q, LAMat_t *r){
 	LA_HANDLE_NULLPTR(a, LA_PROPAGATE_ERROR);

@@ -4,8 +4,13 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include "liblogicanalyzer.h"
 #include <math.h>
+#include "liblogicanalyzer.h"
+#include "error.h"
+#include "types.h"
+#include "gtk_funcs.h"
+#include "clocksync.h"
+#include "enums.h"
 
 const char validClockNames[CLK_NAMES_COUNT][CLK_NAMES_LENGTH] = {	
 	"CLK",

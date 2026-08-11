@@ -4,6 +4,10 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include "liblogicanalyzer.h"
+#include "error.h"
+#include "types.h"
+#include "utils.h"
+#include "dialog.h"
 
 #include <fcntl.h>
 #include <errno.h>

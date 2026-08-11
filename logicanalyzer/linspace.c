@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <math.h>
-#include <gtk/gtk.h>
-#include <cairo.h>
 #include "liblogicanalyzer.h"
+#include "error.h"
+#include "utils.h"
 
 LAErrorCode LALinspace(double *x, double min, double max, size_t points){
 	LA_HANDLE_NULLPTR(x, LA_PROPAGATE_ERROR);

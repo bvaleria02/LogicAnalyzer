@@ -1,11 +1,11 @@
-#include <gtk/gtk.h>
-#include <cairo.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "../liblogicanalyzer.h"
 #include <math.h>
 #include <stdbool.h>
+#include "../liblogicanalyzer.h"
+#include "../error.h"
+#include "../utils.h"
 #include "solver.h"
 #include "ss.h"
 

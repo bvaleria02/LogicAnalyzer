@@ -4,6 +4,11 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include "liblogicanalyzer.h"
+#include "error.h"
+#include "utils.h"
+#include "bucket.h"
+#include "dialog.h"
+#include "hexview.h"
 #include <string.h>
 #include <time.h>
 #include <pthread.h>

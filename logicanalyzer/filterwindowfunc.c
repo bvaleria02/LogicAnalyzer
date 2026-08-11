@@ -1,7 +1,12 @@
+#include <gtk/gtk.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include "liblogicanalyzer.h"
+#include "error.h"
+#include "utils.h"
+#include "filter/windows.h"
+#include "filter/filter.h"
 #include "fixedpoint/fixedpoint.h"
 #include <math.h>
 

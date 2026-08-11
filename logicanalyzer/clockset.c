@@ -5,6 +5,9 @@
 #include <stdint.h>
 #include <string.h>
 #include "liblogicanalyzer.h"
+#include "clockset.h"
+#include "types.h"
+#include "enums.h"
 
 void LAOkayZoomSetWindow(GtkWidget *widget, LAZoomSetWindow *laz){
 	double value = gtk_spin_button_get_value(GTK_SPIN_BUTTON(laz->spin));

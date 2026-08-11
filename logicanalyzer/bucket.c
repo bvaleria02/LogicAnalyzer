@@ -1,11 +1,14 @@
 #include <gtk/gtk.h>
-#include <cairo.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "liblogicanalyzer.h"
 #include <string.h>
 #include <time.h>
+#include "liblogicanalyzer.h"
+#include "error.h"
+#include "utils.h"
+#include "types.h"
+#include "bucket.h"
 
 LABucket *LACreateBucket(){
 	LABucket *bucket = (LABucket *)malloc(sizeof(LABucket));

@@ -4,6 +4,9 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include "logicanalyzer/liblogicanalyzer.h"
+#include "logicanalyzer/error.h"
+#include "logicanalyzer/types.h"
+#include "logicanalyzer/gtk_funcs.h"
 #include "logicanalyzer/compiler.h"
 #include <math.h>
 #include <unistd.h>
@@ -11,6 +14,7 @@
 #include "logicanalyzer/numericMethods/secant.h"
 #include "logicanalyzer/matrix/matrix.h"
 #include "logicanalyzer/la_bigint/laBigInt.h"
+#include "logicanalyzer/structures/listStore.h"
 #include <stdbool.h>
 
 LAWindow *lawp;
@@ -200,6 +204,31 @@ int main(int argc, char **argv){
 	LAMatTranspose(&mv);
 	LAMatPrintWithLabel(&mv, "V");
 
+
+	LAListStore list;
+	LAListStoreInit(&list, 0, true, 0, false);
+
+	for(int i = 0; i < 12; i++){
+		printf("i: %i\t code: %i\n", i, LAListStoreInsert(&list, &i, sizeof(int)));
+	}
+
+	LAErrorCode listStoreCallback(LAListStore *list, LAListStoreNode *node, size_t index, void *data){
+		if(node->data == NULL) return LA_ERROR_NULLPTR;
+
+		printf("i: %li\tx: %i\n", index, *(int *)(node->data));
+
+		(void) list;
+		(void) node;
+		(void) index;
+		(void) data;
+		return LA_NO_ERROR;
+	}
+
+	printf("code: %i\n", LAListStoreIter(&list, listStoreCallback, NULL));
+
+	LAListStore *listp = &list;
+	LAListStoreDestroy(&listp);
+	
 
 	gtk_init(&argc, &argv);
 

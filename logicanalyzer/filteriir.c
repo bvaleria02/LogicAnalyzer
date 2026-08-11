@@ -1,8 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "liblogicanalyzer.h"
 #include <math.h>
+#include "liblogicanalyzer.h"
+#include "error.h"
+#include "utils.h"
+#include "filter/windows.h"
+#include "filter/filter.h"
 
 LAErrorCode LAFilterIIRCompile(double *x, size_t nx, double *y, size_t ny, double *a, size_t na, double *b, size_t nb){
 	LA_HANDLE_NULLPTR(x,	LA_PROPAGATE_ERROR);

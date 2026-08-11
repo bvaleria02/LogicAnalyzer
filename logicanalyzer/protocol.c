@@ -1,6 +1,10 @@
-#include "liblogicanalyzer.h"
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
+#include "liblogicanalyzer.h"
+#include "error.h"
+#include "utils.h"
+#include "serial.h"
 
 void LABigEndiandCpy32(uint8_t *dest, uint32_t value){
 	if(dest == NULL) return;
@@ -141,7 +145,7 @@ uint8_t LAProtocolV2RIsReady(LASerialV2RecvProtocol *p){
 		if(p->length > LA_SERIAL_V2R_DATA_LENGTH){
 			p->length = LA_SERIAL_V2R_DATA_LENGTH;
 		}
-		g_print("Length: %i\n", p->length);
+		printf("Length: %i\n", p->length);
 	}
 
 	return ((p->length + 5) <= p->offset);

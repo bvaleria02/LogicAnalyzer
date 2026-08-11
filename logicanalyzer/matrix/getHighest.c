@@ -1,8 +1,10 @@
-#include "../liblogicanalyzer.h"
-#include "matrix.h"
 #include <stdlib.h>
 #include <stdbool.h>
 #include <math.h>
+#include "../liblogicanalyzer.h"
+#include "../error.h"
+#include "../utils.h"
+#include "matrix.h"
 
 LAErrorCode LAMatGetHighestRow(LAMat_t *m, size_t c, size_t *r, bool useFabs){
 	LA_HANDLE_NULLPTR(m, LA_PROPAGATE_ERROR);

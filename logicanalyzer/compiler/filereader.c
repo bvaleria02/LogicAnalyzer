@@ -3,12 +3,14 @@
 #include <stdbool.h>
 #include <string.h>
 #include "../liblogicanalyzer.h"
+#include "../error.h"
+#include "../utils.h"
 #include "../compiler.h"
 
 bool LAMappedFileIsValid(LAMappedFile *file){
-	LA_HANDLE_NULLPTR(file, 	FALSE);
+	LA_HANDLE_NULLPTR(file, 	false);
 	
-	if(file->data 		== NULL) return FALSE;
+	if(file->data 		== NULL) return false;
 
 	// Note: capacity is not used for normal file read
 	// As LAMappedFile supports MAP_ANONYMOUS, this is kept
@@ -19,35 +21,35 @@ bool LAMappedFileIsValid(LAMappedFile *file){
 	//  - mmap failed (but in this case, data is NULL)
 	// As this is intended of read and write, this is kept
 
-	if(file->capacity 	== 0   ) return FALSE;
-	if(file->capacity < file->length) return FALSE;
+	if(file->capacity 	== 0   ) return false;
+	if(file->capacity < file->length) return false;
 
-	return TRUE;
+	return true;
 }
 
 bool LAMappedFileCanRead(LAMappedFile *file, size_t bytes){
-	LA_HANDLE_NULLPTR(file, 	FALSE);
+	LA_HANDLE_NULLPTR(file, 	false);
 
 	// Invalid file
-	if(!LAMappedFileIsValid(file)) return FALSE;
+	if(!LAMappedFileIsValid(file)) return false;
 
 	// Zero-length, can't read anything if bytes > 0
-	if(file->length == 0 && bytes > 0) return FALSE;
+	if(file->length == 0 && bytes > 0) return false;
 
 	// readOffset is corrupted
 	if(file->readOffset > file->length){
 		// corrects readOffset
 		file->readOffset = file->length;
-		return FALSE;
+		return false;
 	}
 
 	// bytes is larger than available bytes
-	if(bytes > file->length - file->readOffset) return FALSE;
+	if(bytes > file->length - file->readOffset) return false;
 
 	size_t finalOffset = file->readOffset + bytes;
 
 	// Overflow; can't read
-	if(finalOffset < file->readOffset) return FALSE;
+	if(finalOffset < file->readOffset) return false;
 
 	return (finalOffset <= file->length);
 }
@@ -164,7 +166,7 @@ LAErrorCode LAMappedFileIntReadWrapper(LAMappedFile *file, uint64_t *output, siz
 	uint8_t value[LA_INT_READER_MAX] 	= {0};
 	size_t bytesRead 					= 0;
 
-	LAErrorCode code = LAMappedFileReadBytes(file, value, bytesRequest, &bytesRead, TRUE);
+	LAErrorCode code = LAMappedFileReadBytes(file, value, bytesRequest, &bytesRead, true);
 	if(code) return code;
 	
 	if(bytesRead != bytesRequest){

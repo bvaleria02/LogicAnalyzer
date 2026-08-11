@@ -1,9 +1,11 @@
-#include "../liblogicanalyzer.h"
-#include "laBigInt.h"
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include "../liblogicanalyzer.h"
+#include "../error.h"
+#include "../utils.h"
+#include "laBigInt.h"
 
 LAErrorCode LABigIntPrintHex(LABigInt_t *m, const char *label){
 	LA_HANDLE_NULLPTR(m, LA_PROPAGATE_ERROR);

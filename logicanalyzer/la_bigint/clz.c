@@ -1,8 +1,10 @@
-#include "../liblogicanalyzer.h"
-#include "laBigInt.h"
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include "../liblogicanalyzer.h"
+#include "../error.h"
+#include "../utils.h"
+#include "laBigInt.h"
 
 const uint8_t _laBigIntCLZlut[256] = {
 	8, 7, 6, 6, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4,

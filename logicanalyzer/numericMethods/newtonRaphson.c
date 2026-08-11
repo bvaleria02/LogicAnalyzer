@@ -4,6 +4,8 @@
 #include <math.h>
 #include <stdbool.h>
 #include "../liblogicanalyzer.h"
+#include "../error.h"
+#include "../utils.h"
 #include "newtonRaphson.h"
 #include "../matrix/matrix.h"
 

@@ -1,7 +1,9 @@
-#include "../liblogicanalyzer.h"
-#include "matrix.h"
 #include <stdlib.h>
 #include <stdbool.h>
+#include "../liblogicanalyzer.h"
+#include "matrix.h"
+#include "../error.h"
+#include "../utils.h"
 
 LAErrorCode LAMatRowSwap(LAMat_t *m, size_t r1, size_t r2){
 	LA_HANDLE_NULLPTR(m, LA_PROPAGATE_ERROR);

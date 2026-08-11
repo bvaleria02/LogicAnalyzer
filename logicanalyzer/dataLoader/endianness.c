@@ -4,6 +4,13 @@
 #include <math.h>
 #include <gtk/gtk.h>
 #include "../liblogicanalyzer.h"
+#include "../error.h"
+#include "../utils.h"
+#include "../types.h"
+#include "../filter/windows.h"
+#include "../filter/filter.h"
+#include "../filterwindow.h"
+#include "../gtk_funcs.h"
 #include "dataLoader.h"
 
 LAErrorCode LADataLoaderComboBoxEndiannessFiller(GtkWidget *widget){

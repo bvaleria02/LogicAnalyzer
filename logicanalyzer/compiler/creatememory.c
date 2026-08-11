@@ -1,12 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "../liblogicanalyzer.h"
-#include "../compiler.h"
 
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+
+#include "../liblogicanalyzer.h"
+#include "../error.h"
+#include "../utils.h"
+#include "../compiler.h"
 
 size_t LAPageAlignSize(size_t size){
 	if(size == 0){

@@ -1,13 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "../liblogicanalyzer.h"
-#include "../compiler.h"
 #include <string.h>
 
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+
+#include "../liblogicanalyzer.h"
+#include "../error.h"
+#include "../utils.h"
+#include "../compiler.h"
 
 LAErrorCode LACreateDefineNode(LANodeDefine **node, char *label, LANodeSplit *startSplit){
 	LA_HANDLE_NULLPTR(node,					LA_PROPAGATE_ERROR);

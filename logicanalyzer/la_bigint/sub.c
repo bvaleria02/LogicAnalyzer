@@ -1,8 +1,10 @@
-#include "../liblogicanalyzer.h"
-#include "laBigInt.h"
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include "../liblogicanalyzer.h"
+#include "../error.h"
+#include "../utils.h"
+#include "laBigInt.h"
 
 LAErrorCode LABigIntSub_2_1_backend(LABigInt_t *a, LABigInt_t *b, LABigInt_t *c, const bool saturation){
 	LA_HANDLE_NULLPTR(a, LA_PROPAGATE_ERROR);

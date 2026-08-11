@@ -1,7 +1,9 @@
-#include "../liblogicanalyzer.h"
-#include "matrix.h"
 #include <stdlib.h>
 #include <stdbool.h>
+#include "../liblogicanalyzer.h"
+#include "../error.h"
+#include "../utils.h"
+#include "matrix.h"
 
 
 size_t LAMatGetIndex(LAMat_t *mat, size_t row, size_t col){

@@ -1,8 +1,10 @@
-#include "../liblogicanalyzer.h"
-#include "laBigInt.h"
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include "../liblogicanalyzer.h"
+#include "../error.h"
+#include "../utils.h"
+#include "laBigInt.h"
 
 LAErrorCode LABigIntCreateFlags(LABigInt_t *m, const size_t limbCount, const LABigIntFlags flags){
 	LA_HANDLE_NULLPTR(m, LA_PROPAGATE_ERROR);

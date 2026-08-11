@@ -1,4 +1,5 @@
 #include "liblogicanalyzer.h"
+#include "error.h"
 #include <stdlib.h>
 
 _Thread_local LAErrorCode	la_errno 		= LA_NO_ERROR;

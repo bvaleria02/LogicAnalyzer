@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "liblogicanalyzer.h"
 
 #include <fcntl.h>
 #include <errno.h>
@@ -14,6 +13,13 @@
 
 #include <pthread.h>
 #include <stdatomic.h>
+
+#include "liblogicanalyzer.h"
+#include "error.h"
+#include "types.h"
+#include "gtk_funcs.h"
+#include "serial.h"
+#include "threads.h"
 
 //#define COM_RATE B921600
 #define COM_RATE B2000000

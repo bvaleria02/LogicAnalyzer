@@ -32,6 +32,11 @@ OGL_LIBS  = `pkg-config --libs glfw3 epoxy`
 all:
 	$(CC) $(FLAGS) -o $(GEN_TARGET) $(GEN_SRCS) $(GEN_LINKS)
 	$(GEN_TARGET)
+	$(CC) $(FLAGS) -c ./logicanalyzer/structures/model.c -o ./bin/structsModel.o
+	$(CC) $(FLAGS) -c ./logicanalyzer/structures/itemStackable.c -o ./bin/structsStackable.o
+	$(CC) $(FLAGS) -c ./logicanalyzer/structures/itemListable.c -o ./bin/structsListable.o
+	$(CC) $(FLAGS) -c ./logicanalyzer/structures/error.c -o ./bin/structsError.o
+	$(CC) $(FLAGS) -c ./logicanalyzer/structures/listStore.c -o ./bin/structsListStore.o
 	$(FC) $(F90_FLAGS) -c ./logicanalyzer/dataLoader/clampfuncs.f90 -o ./bin/fortranClampFuncs.o
 	$(FC) $(F90_FLAGS) $(F90_FLAGS_2) -c ./logicanalyzer/numericMethods/dft.f90 -o ./bin/fortranDft.o
 	$(FC) $(F90_FLAGS) $(F90_FLAGS_2) -c ./logicanalyzer/windowFunctions/windowFunctions.f90 -o ./bin/fortranWindowFunctions.o
@@ -87,8 +92,6 @@ all:
 #	$(CC) $(FLAGS) $(NMFLAGS) -c ./logicanalyzer/numericMethods/newtonRaphson.c -o ./bin/numericMethodsNewtonRaphson.o
 #	$(CC) $(FLAGS) $(NMFLAGS) -c ./logicanalyzer/numericMethods/secant.c -o ./bin/numericMethodsSecant.o
 #	$(CC) $(FLAGS) $(NMFLAGS) -c ./logicanalyzer/numericMethods/operations.c -o ./bin/numericMethodsOperations.o
-	$(CC) $(FLAGS) -c ./logicanalyzer/structures/linkstore.c -o ./bin/structsLinkStore.o
-	$(CC) $(FLAGS) -c ./logicanalyzer/structures/model.c -o ./bin/structsModel.o
 	$(CC) $(FLAGS) -c ./logicanalyzer/shaders/loader.c -o ./bin/shadersLoader.o
 	$(CC) $(FLAGS) -c ./logicanalyzer/draw/fftfreq.c -o ./bin/drawFFTFreq.o
 	$(CC) $(FLAGS) -c ./logicanalyzer/dialogs.c -o ./bin/dialogs.o
@@ -163,6 +166,7 @@ bigint:
 	$(CC) $(FLAGS) -c ./bigint.c -o ./bin/main.o
 	$(CC) $(FLAGS) $(F90_FLAGS_2) ./bin/*.o -o $(TARGET_BI) $(LINKS)
 	rm -r ./*.mod
+	rm -r ./*.o
 	./$(TARGET_BI)
 
 windows:

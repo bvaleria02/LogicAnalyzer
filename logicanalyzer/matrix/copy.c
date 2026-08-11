@@ -1,8 +1,10 @@
-#include "../liblogicanalyzer.h"
-#include "matrix.h"
 #include <stdlib.h>
 #include <stdbool.h>
 #include <math.h>
+#include "../liblogicanalyzer.h"
+#include "../error.h"
+#include "../utils.h"
+#include "matrix.h"
 
 LAErrorCode LAMatCopy(LAMat_t *src, LAMat_t *dest){
 	LA_HANDLE_NULLPTR(src, 	LA_PROPAGATE_ERROR);

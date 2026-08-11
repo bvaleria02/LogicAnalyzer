@@ -5,6 +5,14 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "liblogicanalyzer.h"
+#include "enums.h"
+#include "error.h"
+#include "utils.h"
+#include "types.h"
+#include "gtk_funcs.h"
+#include "filter/windows.h"
+#include "filter/filter.h"
+#include "filterwindow.h"
 #include "compiler.h"
 #include "fixedpoint/fixedpoint.h"
 #include <math.h>

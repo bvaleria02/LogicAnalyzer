@@ -1,7 +1,9 @@
-#include "../liblogicanalyzer.h"
-#include "matrix.h"
 #include <stdlib.h>
 #include <stdbool.h>
+#include "../liblogicanalyzer.h"
+#include "../error.h"
+#include "../utils.h"
+#include "matrix.h"
 
 LAErrorCode LAMatFill(LAMat_t *m, double value){
 	if(!(LAMatIsValid(m)))	goto matrix_error;

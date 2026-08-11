@@ -3,10 +3,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "liblogicanalyzer.h"
 #include <string.h>
 #include <time.h>
 #include <pthread.h>
+
+#include "liblogicanalyzer.h"
+#include "error.h"
+#include "utils.h"
+#include "types.h"
+#include "gtk_funcs.h"
 
 uint16_t LAGetDataBufferIndexScope(LAWindow *law, uint16_t i){
 	int32_t index = (i + law->rd.dataOffset + law->rd.scopeOffset);

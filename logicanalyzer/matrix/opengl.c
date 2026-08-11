@@ -1,10 +1,12 @@
-#include "../liblogicanalyzer.h"
-#include "matrix.h"
-#include "opengl.h"
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <math.h>
+#include "../liblogicanalyzer.h"
+#include "../error.h"
+#include "../utils.h"
+#include "matrix.h"
+#include "opengl.h"
 
 LAErrorCode LAMatCreateMat2Flags(LAMat_t *m, LAMatFlags flags){
 	LA_HANDLE_NULLPTR(m, LA_PROPAGATE_ERROR);

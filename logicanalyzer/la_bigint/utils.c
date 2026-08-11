@@ -1,8 +1,11 @@
-#include "../liblogicanalyzer.h"
-#include "laBigInt.h"
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
+#include "../liblogicanalyzer.h"
+#include "../error.h"
+#include "../utils.h"
+#include "laBigInt.h"
 
 uint64_t LAMin3_uint64(uint64_t n1, uint64_t n2, uint64_t n3){
 	// Min, 3 inputs, unsigned int 64 bits 

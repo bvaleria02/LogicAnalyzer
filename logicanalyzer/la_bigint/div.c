@@ -1,9 +1,11 @@
-#include "../liblogicanalyzer.h"
 #include <math.h>
-#include "laBigInt.h"
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include "../liblogicanalyzer.h"
+#include "../error.h"
+#include "../utils.h"
+#include "laBigInt.h"
 
 LAErrorCode LABigIntDiv_integer_backend(LABigInt_t *a, uint32_t b, uint32_t *rem){
 	LA_HANDLE_NULLPTR(a, LA_PROPAGATE_ERROR);

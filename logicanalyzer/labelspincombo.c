@@ -4,6 +4,10 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include "liblogicanalyzer.h"
+#include "error.h"
+#include "types.h"
+#include "utils.h"
+#include "gtk_funcs.h"
 #include <time.h>
 #include <pthread.h>
 #include <math.h>

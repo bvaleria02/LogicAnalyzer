@@ -5,10 +5,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "liblogicanalyzer.h"
 #include <time.h>
 #include <pthread.h>
 #include <math.h>
+#include "liblogicanalyzer.h"
+#include "error.h"
+#include "utils.h"
+#include "types.h"
+#include "gtk_funcs.h"
+#include "filter/windows.h"
+#include "filter/filter.h"
 #include "dataLoader/dataLoader.h"
 #include "numericMethods/dft.h"
 #include "numericMethods/fft.h"

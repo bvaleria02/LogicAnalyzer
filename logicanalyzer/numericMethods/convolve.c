@@ -1,5 +1,7 @@
 #include <stdint.h>
 #include "../liblogicanalyzer.h"
+#include "../error.h"
+#include "../utils.h"
 #include "convolve.h"
 
 LAErrorCode LAConvolveArray(double *x, size_t nx, double *h, size_t nh, double *y, size_t ny){

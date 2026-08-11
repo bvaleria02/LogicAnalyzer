@@ -1,8 +1,13 @@
-#include "../liblogicanalyzer.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <string.h>
+#include "../liblogicanalyzer.h"
+#include "../error.h"
+#include "../utils.h"
+#include "../filter/windows.h"
+#include "fft.h"
 
 LAErrorCode LAFFT_core(double *a, double *b, const size_t n, const bool invert){
 	LA_HANDLE_NULLPTR(a, LA_PROPAGATE_ERROR);

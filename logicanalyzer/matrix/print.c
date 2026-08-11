@@ -1,8 +1,10 @@
-#include "../liblogicanalyzer.h"
-#include "matrix.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include "../liblogicanalyzer.h"
+#include "../error.h"
+#include "../utils.h"
+#include "matrix.h"
 
 LAErrorCode LAMatPrint(LAMat_t *mat){
 	LA_HANDLE_NULLPTR(mat, LA_PROPAGATE_ERROR);

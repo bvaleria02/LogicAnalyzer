@@ -1,8 +1,10 @@
-#include "../liblogicanalyzer.h"
-#include "matrix.h"
 #include <stdlib.h>
 #include <stdbool.h>
 #include <math.h>
+#include "../liblogicanalyzer.h"
+#include "../error.h"
+#include "../utils.h"
+#include "matrix.h"
 
 LAErrorCode LAMatFrobeniusNormBounded(LAMat_t *m, size_t r0, size_t c0, size_t rf, size_t cf, double *norm){
 	LA_HANDLE_NULLPTR(m, 	LA_PROPAGATE_ERROR);

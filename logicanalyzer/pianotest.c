@@ -3,8 +3,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "liblogicanalyzer.h"
 #include <math.h>
+#include "liblogicanalyzer.h"
+#include "error.h"
+#include "utils.h"
+#include "types.h"
+#include "gtk_funcs.h"
+#include "serial.h"
 
 #define WHITE_KEY_SIZE 40
 #define WHITE_KEY_HEIGHT 108

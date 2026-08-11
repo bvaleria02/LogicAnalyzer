@@ -6,6 +6,13 @@
 #include <math.h>
 #include <stdbool.h>
 #include "../liblogicanalyzer.h"
+#include "../error.h"
+#include "../utils.h"
+#include "../enums.h"
+#include "../types.h"
+#include "../filter/windows.h"
+#include "../filter/filter.h"
+#include "../filterwindow.h"
 #include "circuitsim.h"
 #include "../numericMethods/solver.h"
 #include "../numericMethods/ss.h"

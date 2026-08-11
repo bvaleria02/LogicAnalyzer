@@ -3,14 +3,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "../liblogicanalyzer.h"
 #include <time.h>
 #include <pthread.h>
 #include <math.h>
-#include "dft.h"
 #include <stdbool.h>
+#include "../liblogicanalyzer.h"
+#include "../error.h"
+#include "../utils.h"
 #include "solver.h"
 #include "solverConsts.h"
+#include "newtonRaphson.h"
 #include "secant.h"
 
 double LASolverEuler(double y0, double t0, double h, LASolverCallback f, void *ptr){

@@ -1,9 +1,11 @@
-#include "../liblogicanalyzer.h"
 #include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include "../liblogicanalyzer.h"
+#include "../error.h"
+#include "../utils.h"
 #include "solver.h"
 #include "solverConsts.h"
 #include "../matrix/matrix.h"

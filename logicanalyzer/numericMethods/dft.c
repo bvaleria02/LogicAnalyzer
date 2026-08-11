@@ -3,12 +3,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "../liblogicanalyzer.h"
 #include <time.h>
 #include <pthread.h>
 #include <math.h>
-#include "dft.h"
 #include <stdbool.h>
+#include "../liblogicanalyzer.h"
+#include "../error.h"
+#include "../utils.h"
+#include "../filter/windows.h"
+#include "dft.h"
 
 LAErrorCode LAUnilateralDiscreteFT(double *x, size_t nx, double *w, double *p, size_t nw, LAFilterWindowType windowType, double *windowParams){
 	LA_HANDLE_NULLPTR(x, 			LA_PROPAGATE_ERROR);

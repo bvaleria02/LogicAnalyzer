@@ -4,6 +4,9 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include "liblogicanalyzer.h"
+#include "error.h"
+#include "types.h"
+#include "gtk_funcs.h"
 
 void LAWindowCreateChannels(LAWindow *law){
 	for(uint8_t i = 0; i < MAX_CHANNEL_COUNT; i++){

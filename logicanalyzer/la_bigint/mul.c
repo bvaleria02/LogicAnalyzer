@@ -1,8 +1,10 @@
-#include "../liblogicanalyzer.h"
-#include "laBigInt.h"
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include "../liblogicanalyzer.h"
+#include "../error.h"
+#include "../utils.h"
+#include "laBigInt.h"
 
 LAErrorCode LABigIntKaratsuba_core(LABigIntLimb_t x1, LABigIntLimb_t x2, LABigIntLimb_t y1, LABigIntLimb_t y2, uint64_t *z0, uint64_t *z1, uint64_t *z2){
 	LA_HANDLE_NULLPTR(z0, LA_PROPAGATE_ERROR);

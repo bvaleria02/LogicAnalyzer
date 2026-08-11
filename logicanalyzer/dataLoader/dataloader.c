@@ -4,6 +4,13 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include "../liblogicanalyzer.h"
+#include "../error.h"
+#include "../types.h"
+#include "../utils.h"
+#include "../gtk_funcs.h"
+#include "../filter/windows.h"
+#include "../filter/filter.h"
+#include "../filterwindow.h"
 #include "dataLoader.h"
 #include <time.h>
 #include <pthread.h>

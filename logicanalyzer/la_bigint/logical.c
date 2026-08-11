@@ -1,8 +1,10 @@
-#include "../liblogicanalyzer.h"
-#include "laBigInt.h"
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include "../liblogicanalyzer.h"
+#include "../error.h"
+#include "../utils.h"
+#include "laBigInt.h"
 
 LAErrorCode LABigIntReverseLimbsInplace(LABigInt_t *a, const size_t start, const size_t end){
 	LA_HANDLE_NULLPTR(a, LA_PROPAGATE_ERROR);

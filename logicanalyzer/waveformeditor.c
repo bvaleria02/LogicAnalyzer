@@ -3,8 +3,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "liblogicanalyzer.h"
 #include <math.h>
+#include "liblogicanalyzer.h"
+#include "enums.h"
+#include "error.h"
+#include "utils.h"
+#include "types.h"
+#include "gtk_funcs.h"
+#include "filter/windows.h"
+#include "filter/filter.h"
+#include "filterwindow.h"
+#include "serial.h"
 
 #define LA_WAVE_WIDTH 4
 #define LA_WAVE_SCALEX 1

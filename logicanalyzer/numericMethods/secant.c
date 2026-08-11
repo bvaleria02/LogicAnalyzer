@@ -4,6 +4,8 @@
 #include <math.h>
 #include <stdbool.h>
 #include "../liblogicanalyzer.h"
+#include "../error.h"
+#include "../utils.h"
 #include "secant.h"
 
 double LASecant(LASecantFunc f, double h0, double x0, void *ptr, size_t nmax, double atol, double rtol, double ftol, double eps, double reps, LASecantFlags flags, LASecantStatus *status){

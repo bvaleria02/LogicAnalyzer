@@ -1,144 +1,195 @@
+#include "../error.h"
 #include "../liblogicanalyzer.h"
 #include "model.h"
-#include "linkstore.h"
+#include "error.h"
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <stdio.h>
-#include <stdbool.h>
 
-LAErrorCode LAItemModelErrorBase(LAItemModel *model, const char *name){
-  printf("[Error] VTable entry for (%p) takes to the base case of \"%s\"\n", model, name);
-  return LA_ERROR_VTABLE_BASE;
-}
+const LAItemModelVTable LAItemModelVTableBase = {
+  .destroy         = (LAItemModelFnDestroy) LAItemModelDestroy,
+  .increaseCount   = (LAItemModelFnIncreaseCount) LAItemModelIncreaseCount,
+  .decreaseCount   = (LAItemModelFnDecreaseCount) LAItemModelDecreaseCount,
+  .resetCount      = (LAItemModelFnResetCount) LAItemModelResetCount,
+  .setNodeLength   = (LAItemModelFnSetNodeLength) LAItemModelSetNodeLength,
+  .getNodeLength   = (LAItemModelFnGetNodeLength) LAItemModelGetNodeLength,
+  .isInfinite      = (LAItemModelFnIsInfinite) LAItemModelIsInfinite,
+  .isFinite        = (LAItemModelFnIsFinite) LAItemModelIsFinite,
+  .isMutable       = (LAItemModelFnIsMutable) LAItemModelIsMutable,
+  .getNodeCount    = (LAItemModelFnGetNodeCount) LAItemModelGetNodeCount,
+  .setMaxNodeCount = (LAItemModelFnSetMaxNodeCount) LAItemModelSetMaxNodeCount,
+  .getMaxNodeCount = (LAItemModelFnGetMaxNodeCount) LAItemModelGetMaxNodeCount,
+  .iter            = (LAItemModelFnIter) LAItemModelIter,
+  .insert          = (LAItemModelFnInsert) LAItemModelInsert,
+  .remove          = (LAItemModelFnRemove) LAItemModelRemove,
+  .get             = (LAItemModelFnGet) LAItemModelGet
+};
 
-LAErrorCode LAItemModelInit(LAItemModel *model, ssize_t maxLength, bool isMutable, size_t nodeSize){
+
+LAErrorCode LAItemModelInit(LAItemModel *model, size_t maxNodeCount, bool isInfinite, size_t defaultNodeSize, bool useDefaultSize){
   LA_HANDLE_NULLPTR(model, LA_PROPAGATE_ERROR);
 
-  model->length    = 0;
-  model->maxLength = maxLength;
-  model->nodeSize  = nodeSize;
-  model->isMutable = isMutable;
-
-  model->vtable.destroy     = LAItemModelDestroy;
-  model->vtable.appendEnd   = LAItemModelAppendEnd;
-  model->vtable.appendStart = LAItemModelAppendStart;
-  model->vtable.insert      = LAItemModelInsert;
-  model->vtable.removeEnd   = LAItemModelRemoveEnd;
-  model->vtable.removeStart = LAItemModelRemoveStart;
-  model->vtable.remove      = LAItemModelRemove;
-  model->vtable.iter        = LAItemModelIter;
-    
-  return LA_NO_ERROR;
-}
-
-LAErrorCode LAItemModelDestroy(LAItemModel *model){
-  LA_HANDLE_NULLPTR(model, LA_PROPAGATE_ERROR);
-
-  LAErrorCode code = LA_NO_ERROR;
+  model->vtable            = (LAItemModelVTable *) &LAItemModelVTableBase;
+  model->nodeCount         = 0;
+  model->defaultNodeLength = defaultNodeSize;
+  model->maxNodeCount      = maxNodeCount;
+  model->isInfinite        = isInfinite;
+  model->isMutable         = true;
+  model->useDefaultSize    = useDefaultSize;
   
-  if(model->vtable.destroy == LAItemModelDestroy){
-    code = LAItemModelErrorBase(model, "destroy");
-  } else {
-    code = model->vtable.destroy(model);
+  return LA_NO_ERROR;  
+}
+
+
+LAErrorCode LAItemModelDestroy(LAItemModel **model){
+  LA_HANDLE_NULLPTR(model, LA_PROPAGATE_ERROR);
+
+  if((*model) == NULL){
+    return LA_ERROR_NULLPTR;
   }
+
+  //free((*model));
+  (*model) = NULL;
   
-  return code;
+  return LA_NO_ERROR;  
 }
 
-LAErrorCode LAItemModelAppendStart(LAItemModel *model, void *data){
+LAErrorCode LAItemModelIncreaseCount(LAItemModel *model, const size_t amount){
   LA_HANDLE_NULLPTR(model, LA_PROPAGATE_ERROR);
 
-  LAErrorCode code = LA_NO_ERROR;
-  
-  if(model->vtable.appendStart == LAItemModelAppendStart){
-    code = LAItemModelErrorBase(model, "appendStart");
-  } else {
-    code = model->vtable.appendStart(model, data);
-  }
-  
-  return code;
+  size_t newCount = model->nodeCount + amount;
+  if(newCount < model->nodeCount) return LA_ERROR_INT_OVERFLOW;
+
+  model->nodeCount = newCount;
+  return LA_NO_ERROR;  
 }
 
-LAErrorCode LAItemModelAppendEnd(LAItemModel *model, void *data){
+LAErrorCode LAItemModelDecreaseCount(LAItemModel *model, const size_t amount){
   LA_HANDLE_NULLPTR(model, LA_PROPAGATE_ERROR);
+  
+  size_t newCount = model->nodeCount - amount;
+  if(newCount > model->nodeCount) return LA_ERROR_INT_UNDERFLOW;
 
-  LAErrorCode code = LA_NO_ERROR;
-  
-  if(model->vtable.appendEnd == LAItemModelAppendEnd){
-    code = LAItemModelErrorBase(model, "appendEnd");
-  } else {
-    code = model->vtable.appendEnd(model, data); 
-  }
-  
-  return code;
+  model->nodeCount = newCount;
+  return LA_NO_ERROR;  
 }
 
-LAErrorCode LAItemModelInsert(LAItemModel *model, size_t index, void *data){
+LAErrorCode LAItemModelResetCount(LAItemModel *model){
   LA_HANDLE_NULLPTR(model, LA_PROPAGATE_ERROR);
 
-  LAErrorCode code = LA_NO_ERROR;
-  
-  if(model->vtable.insert == LAItemModelInsert){
-    code = LAItemModelErrorBase(model, "insert");
-  } else {
-    code = model->vtable.insert(model, index, data);
-  }
-  
-  return code;
+  model->nodeCount = 0;
+
+  return LA_NO_ERROR;  
 }
 
-LAErrorCode LAItemModelRemoveStart(LAItemModel *model){
+LAErrorCode LAItemModelSetNodeLength(LAItemModel *model, const size_t length){
   LA_HANDLE_NULLPTR(model, LA_PROPAGATE_ERROR);
 
-  LAErrorCode code = LA_NO_ERROR;
-  
-  if(model->vtable.removeStart == LAItemModelRemoveStart){
-    code = LAItemModelErrorBase(model, "removeStart");
-  } else {
-    code = model->vtable.removeStart(model);
-  }
-  
-  return code;
+  model->defaultNodeLength = length;
+
+  return LA_NO_ERROR;  
 }
 
-LAErrorCode LAItemModelRemoveEnd(LAItemModel *model){
+LAErrorCode LAItemModelGetNodeLength(const LAItemModel *model, size_t *length){
   LA_HANDLE_NULLPTR(model, LA_PROPAGATE_ERROR);
+  LA_HANDLE_NULLPTR(length, LA_PROPAGATE_ERROR);
 
-  LAErrorCode code = LA_NO_ERROR;
-  
-  if(model->vtable.removeEnd == LAItemModelRemoveEnd){
-    code = LAItemModelErrorBase(model, "removeEnd");
-  } else {
-    code = model->vtable.removeEnd(model); 
-  }
-  
-  return code;
+  (*length) = model->defaultNodeLength;
+
+  return LA_NO_ERROR;  
 }
 
-LAErrorCode LAItemModelRemove(LAItemModel *model, size_t index){
-  LA_HANDLE_NULLPTR(model, LA_PROPAGATE_ERROR);
+LAErrorCode LAItemModelIsInfinite(const LAItemModel *model, bool *isInfinite){
+  LA_HANDLE_NULLPTR(model,      LA_PROPAGATE_ERROR);
+  LA_HANDLE_NULLPTR(isInfinite, LA_PROPAGATE_ERROR);
 
-  LAErrorCode code = LA_NO_ERROR;
-  
-  if(model->vtable.remove == LAItemModelRemove){
-    code = LAItemModelErrorBase(model, "remove");
-  } else {
-    code = model->vtable.remove(model, index);
-  }
-  
-  return code;
+  (*isInfinite) = model->isInfinite;
+
+  return LA_NO_ERROR;  
 }
 
-LAErrorCode LAItemModelIter(LAItemModel *model, LAItemModelIterCallback callback, ssize_t iterMax){
+LAErrorCode LAItemModelIsFinite(const LAItemModel *model, bool *isFinite){
+  LA_HANDLE_NULLPTR(model, LA_PROPAGATE_ERROR);
+  LA_HANDLE_NULLPTR(isFinite, LA_PROPAGATE_ERROR);
+
+  (*isFinite) = !(model->isInfinite);
+
+  return LA_NO_ERROR;  
+}
+
+LAErrorCode LAItemModelIsMutable(const LAItemModel *model, bool *isMutable){
+  LA_HANDLE_NULLPTR(model,     LA_PROPAGATE_ERROR);
+  LA_HANDLE_NULLPTR(isMutable, LA_PROPAGATE_ERROR);
+
+  (*isMutable) = model->isMutable;
+
+  return LA_NO_ERROR;  
+}
+
+LAErrorCode LAItemModelGetNodeCount(const LAItemModel *model, size_t *count){
+  LA_HANDLE_NULLPTR(model, LA_PROPAGATE_ERROR);
+  LA_HANDLE_NULLPTR(count, LA_PROPAGATE_ERROR);
+
+  (*count) = model->nodeCount;
+
+  return LA_NO_ERROR;  
+}
+
+LAErrorCode LAItemModelSetMaxNodeCount(LAItemModel *model, size_t count){
   LA_HANDLE_NULLPTR(model, LA_PROPAGATE_ERROR);
 
-  LAErrorCode code = LA_NO_ERROR;
+  model->maxNodeCount = count;
+
+  return LA_NO_ERROR;  
+}
+
+LAErrorCode LAItemModelGetMaxNodeCount(const LAItemModel *model, size_t *count){
+  LA_HANDLE_NULLPTR(model, LA_PROPAGATE_ERROR);
+  LA_HANDLE_NULLPTR(count, LA_PROPAGATE_ERROR);
+
+  bool isInfinite = false;
+  LAErrorCode code = LAItemModelIsInfinite(model, &isInfinite);
+  if(code) return code;
   
-  if(model->vtable.iter == LAItemModelIter){
-    code = LAItemModelErrorBase(model, "iter");
-  } else {
-    code = model->vtable.iter(model, callback, iterMax);
-  }
-  
-  return code;
+  (*count) = (isInfinite) ? SIZE_MAX : model->maxNodeCount;
+
+  return LA_NO_ERROR;  
+}
+
+LAErrorCode LAItemModelIter(LAItemModel *model, LAItemModelCallback callback, void *data){
+  LA_HANDLE_NULLPTR(model,    LA_PROPAGATE_ERROR);
+  LA_HANDLE_NULLPTR(callback, LA_PROPAGATE_ERROR);
+
+  (void) model;
+  (void) callback;
+  (void) data;
+  return LALogStructureErrorBase(model, "itemModel", "iter");
+}
+
+LAErrorCode LAItemModelInsert(LAItemModel *model, void *data, size_t length){
+  LA_HANDLE_NULLPTR(model, LA_PROPAGATE_ERROR);
+  LA_HANDLE_NULLPTR(data, LA_PROPAGATE_ERROR);
+
+  (void) model;
+  (void) data;
+  (void) length;
+  return LALogStructureErrorBase((void *)model, "itemModel", "insert");
+}
+
+LAErrorCode LAItemModelRemove(LAItemModel *model){
+  LA_HANDLE_NULLPTR(model, LA_PROPAGATE_ERROR);
+
+  (void) model;
+  return LALogStructureErrorBase((void *)model, "itemModel", "remove");
+}
+
+LAErrorCode LAItemModelGet(const LAItemModel *model, void **data, size_t *length){
+  LA_HANDLE_NULLPTR(model, LA_PROPAGATE_ERROR);
+  LA_HANDLE_NULLPTR(data, LA_PROPAGATE_ERROR);
+  LA_HANDLE_NULLPTR(length, LA_PROPAGATE_ERROR);
+
+  (void) model;
+  (void) data;
+  (void) length;
+  return LALogStructureErrorBase((void *)model, "itemModel", "get");
 }

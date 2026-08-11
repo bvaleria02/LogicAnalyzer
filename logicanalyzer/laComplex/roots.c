@@ -1,4 +1,6 @@
 #include "../liblogicanalyzer.h"
+#include "../error.h"
+#include "../utils.h"
 #include "laComplex.h"
 #include <stdbool.h>
 #include <stdlib.h>

@@ -3,9 +3,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "../liblogicanalyzer.h"
 #include <math.h>
 #include <stdbool.h>
+#include "../liblogicanalyzer.h"
+#include "../error.h"
+#include "../utils.h"
 #include "normalize.h"
 
 LAErrorCode LANormalizeArrayRMS(double *x, size_t n){

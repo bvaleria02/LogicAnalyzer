@@ -1,5 +1,3 @@
-#include "../liblogicanalyzer.h"
-#include "loader.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -8,6 +6,11 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+
+#include "../liblogicanalyzer.h"
+#include "../error.h"
+#include "../utils.h"
+#include "loader.h"
 
 LAErrorCode LAShaderLoader(const char *path, uint8_t **output, size_t *size){
 	LA_HANDLE_NULLPTR(path,   LA_PROPAGATE_ERROR);

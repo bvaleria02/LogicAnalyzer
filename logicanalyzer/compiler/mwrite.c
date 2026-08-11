@@ -4,8 +4,11 @@
 #define _GNU_SOURCE 1
 #include <unistd.h>
 #include <sys/mman.h>
+#include <string.h>
 
 #include "../liblogicanalyzer.h"
+#include "../error.h"
+#include "../utils.h"
 #include "../compiler.h"
 #include <fcntl.h>
 #include <sys/stat.h>
