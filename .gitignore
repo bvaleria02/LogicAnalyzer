@@ -8,3 +8,16 @@
 *.py
 main
 logicAnalyzer.c
+o.c
+o2.c
+TestFiles
+bigint.c
+bigint
+bin
+main.rs
+my_project
+o_test.elf
+*.mod
+logicanalyzer/glad
+logicanalyzer/fixedpoint
+logicanalyzer/Makefile

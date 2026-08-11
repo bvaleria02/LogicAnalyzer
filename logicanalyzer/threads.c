@@ -86,17 +86,18 @@ void *LAReadThread(void *vlaw){
 //			g_print("Protocol is not ready\n");
 		} else {
 			LAProtocolV2RUnpack(&pr);
-			/*
+			
 			g_print("Command: %i\n", pr.command);
 			g_print("Length: %i\n", pr.length);
-*/
 			switch(pr.command){
 				case LA_RX_COMMAND_ACK:	
+											printf("ACK received\n");
 										atomic_store(&(law->mutexes.isWaitingACK), 0);
 										pthread_cond_signal(&(law->mutexes.condACK));
 										break;
 
 				case LA_RX_COMMAND_CAPTURE:
+											printf("Capture received\n");
 											if(atomic_load(&(lawp->rd.dontWrite))){
 												continue;
 											}

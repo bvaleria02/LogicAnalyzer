@@ -155,7 +155,7 @@ void LASendSerial(LASerialProtocol *p, LAWindow *law){
 
 	int r = write(law->connect.fd, p->frames, LA_SERIAL_FRAME_LENGTH);
 	atomic_store(&(law->mutexes.isWaitingACK), 1);
-	g_print("Data send, waiting ACK. response: %i\n", r);
+	g_print("Data sent, awaiting ACK. response: %i\n", r);
 
 	int rc = 0;
 	while(law->mutexes.isWaitingACK == 1 && rc != ETIMEDOUT){
@@ -272,13 +272,22 @@ int LACreateConnectWindow(GtkWidget *widget, LAWindow *law){
 	lac->vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
 	gtk_container_add(GTK_CONTAINER(lac->content), GTK_WIDGET(lac->vbox));
 
-	lac->label			= gtk_label_new("Device:");
+	lac->label			  = gtk_label_new("Device:");
 	lac->response 		= gtk_label_new("Response:");
 	lac->dropdown 		= gtk_combo_box_text_new();
 	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(lac->dropdown), "/dev/ttyS0");
 	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(lac->dropdown), "/dev/ttyUSB0");
 	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(lac->dropdown), "/dev/ttyUSB1");
 	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(lac->dropdown), "/dev/ttyUSB2");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(lac->dropdown), "/dev/ttyUSB3");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(lac->dropdown), "/dev/ttyUSB4");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(lac->dropdown), "/dev/pts/1");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(lac->dropdown), "/dev/pts/2");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(lac->dropdown), "/dev/pts/3");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(lac->dropdown), "/dev/pts/4");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(lac->dropdown), "/dev/pts/5");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(lac->dropdown), "/dev/pts/6");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(lac->dropdown), "/dev/pts/7");
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lac->dropdown), 1);
 
 	lac->connect 		= gtk_button_new_with_label("Connect");
