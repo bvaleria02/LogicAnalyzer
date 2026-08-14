@@ -35,7 +35,9 @@ enum _la_error_code {
 	LA_ERROR_VTABLE_BASE				    = 24,
 	LA_ERROR_MAX_LENGTH				      = 25,
 	LA_ERROR_INT_OVERFLOW				    = 26,
-	LA_ERROR_INT_UNDERFLOW			    = 27
+	LA_ERROR_INT_UNDERFLOW			    = 27,
+	LA_ERROR_PARSER_LENGTH          = 28,
+	LA_ERROR_MISMATCH_FCS           = 29
 };
 
 typedef const char *LAFunctionName;

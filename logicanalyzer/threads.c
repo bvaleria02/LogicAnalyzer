@@ -34,7 +34,7 @@ void LAHandleBucketWrite(uint8_t *buffer, int16_t size){
 	pthread_mutex_unlock(&(lawp->mutexes.bucketAccess));
 }
 
-static void LAWriteDataToDataBuffer(LAWindow *law, uint8_t *buffer, int16_t numBytes, uint16_t *index){
+[[maybe_unused]] static void LAWriteDataToDataBuffer(LAWindow *law, uint8_t *buffer, int16_t numBytes, uint16_t *index){
 	pthread_mutex_lock(&(law->mutexes.dataBufferAccess));
 
 	for(uint16_t i = 0; i < numBytes; i++){
@@ -45,91 +45,296 @@ static void LAWriteDataToDataBuffer(LAWindow *law, uint8_t *buffer, int16_t numB
 	pthread_mutex_unlock(&(law->mutexes.dataBufferAccess));
 }
 
-void *LAReadThread(void *vlaw){
-	LAWindow *law = vlaw;
-	uint8_t buffer[LA_READ_BUFFER_LENGTH];
-	uint16_t index = 0;
-	int16_t numBytes = 0;
-	uint16_t dataOffset = 0;
-	LASerialV2RecvProtocol pr;
-	LAProtocolV2RInit(&pr);
+LAErrorCode LADebugPrintHex(uint8_t *buffer, size_t length){
+	LA_CHECK_NULLPTR(buffer);
 
-	tcflush(law->connect.fd, TCIFLUSH);
-	law->mutexes.isWaitingACK = 0;
+	printf("Address          | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F \n");
+	printf("-----------------|-------------------------------------------------\n");
+	
+	for(size_t i = 0; i < length; i++){
+		if((i % 0x10) == 0x0){
+			printf("\n%016lX | ", i);
+		}
+		printf("%02X ", buffer[i]);
+	}
+	
+	printf("End\n\n");
+		
+	return LA_NO_ERROR;
+}
 
-	do{
-		if(atomic_load(&(law->connect.breakReadLoop))){
+typedef struct {
+	LASerialV2RecvProtocol data;
+	size_t cursor;
+} LAPacketParser;
+
+LAErrorCode LAPacketParserClear(LAPacketParser *p){
+	LA_CHECK_NULLPTR(p);
+	
+	p->data.command = 0;
+	p->data.length = 0;
+	p->data.fcs = 0;
+	memset(p->data.data,   0l, LA_SERIAL_V2_DATA_LENGTH);
+	memset(p->data.frames, 0l, LA_SERIAL_V2_FRAME_LENGTH);
+
+	p->cursor= 0;
+	
+	return LA_NO_ERROR;
+}
+
+LAErrorCode LAPacketParserInit(LAPacketParser *p){
+	LA_CHECK_NULLPTR(p);
+
+	LAErrorCode code = LA_NO_ERROR;
+	code = LAPacketParserClear(p);
+
+ 	return code;
+}
+
+LAErrorCode LAPacketParserParse(LAPacketParser *parser, uint8_t *buffer, size_t length, size_t *pBytesParsed, bool *pIsDone){
+	LA_CHECK_NULLPTR(parser);
+	LA_CHECK_NULLPTR(buffer);
+	LA_CHECK_NULLPTR(pBytesParsed);
+	LA_CHECK_NULLPTR(pIsDone);
+
+	for(size_t i = (*pBytesParsed); i < length; i++){
+	//	printf("Length: %li\tBytes parsed: %li\tCursor: %li\n", length, (*pBytesParsed), parser->cursor);
+	//	printf("Command: %i\tLength: %i\n", parser->data.command, parser->data.length);
+		(*pBytesParsed) += 1;
+		
+		if(parser->cursor == 0){
+			parser->data.command = buffer[i];
+		} else if (parser->cursor == 1){
+			parser->data.length = buffer[i];
+		} else if (parser->cursor == 2){
+			parser->data.length |= ((uint16_t)(buffer[i]) << 8);
+			if(parser->data.length > LA_SERIAL_V2R_DATA_LENGTH){
+				return LA_ERROR_PARSER_LENGTH;
+			}
+		} else if ((parser->cursor > 2) && (parser->cursor < (size_t)(3 + parser->data.length))){
+			size_t dataIndex = parser->cursor - 3;
+			parser->data.data[dataIndex] = buffer[i];
+		} else if (parser->cursor == (size_t)(3 + parser->data.length)){
+			parser->data.fcs = buffer[i];
+		} else if (parser->cursor == (size_t)(4 + parser->data.length)){
+			parser->data.fcs |= ((uint16_t)(buffer[i]) << 8);
+			(*pIsDone) = true;
 			break;
 		}
 
-		numBytes = read(law->connect.fd, &buffer, LA_READ_BUFFER_LENGTH);
-		if(numBytes <= 0){
-			continue;
-		}
-/*
-		for(uint16_t i = 0; i < numBytes; i++){
-			printf(" %02X", buffer[i]);
-		}
-*/
-	//	g_print("Length: %i bytes\n", numBytes);
+		parser->cursor += 1;
+	}
+	
+	return LA_NO_ERROR;
+}
 
-		LAProtocolV2RFill(&pr, buffer, numBytes);
-//		g_print("Offset: %i\tsize: %i\n", pr.offset, numBytes);
+#define LA_TIMEOUT_VALUE 3.0
 
-/*
-		if(numBytes >= LA_READ_BUFFER_LENGTH){
-			numBytes = LA_READ_BUFFER_LENGTH;
-		}
-*/
+bool LAHasTimeout(struct timespec *lastTime, double *pTimeDelta){
+	struct timespec currentTime;
+	clock_gettime(CLOCK_MONOTONIC, &currentTime);
 
-		if(LAProtocolV2RIsReady(&pr) == 0){
-//			g_print("Protocol is not ready\n");
+	int64_t seconds = currentTime.tv_sec  - lastTime->tv_sec;
+	int64_t nano    = currentTime.tv_nsec - lastTime->tv_nsec;
+
+	double sTimeDelta = seconds + ((nano) / (double) 1000000000);
+	if(pTimeDelta != NULL) (*pTimeDelta) = sTimeDelta;
+
+	return (sTimeDelta >= LA_TIMEOUT_VALUE);
+}
+
+LAErrorCode LAProtocolV2RPrint(LASerialV2RecvProtocol *p){
+	LA_CHECK_NULLPTR(p);
+
+	LAErrorCode code = LA_NO_ERROR;
+
+	printf("\tCommand: %i\n", p->command);
+	printf("\tLength: %i\n", p->length);
+	printf("\tFCS: %i\n", p->fcs);
+	printf("\tData:\n");
+	code = LADebugPrintHex(p->data, p->length);		
+				
+	return code;
+}
+
+uint16_t LAModbusCRC16(uint16_t crc, uint8_t byte, bool init){
+	if(init) crc = 0xFFFF;
+
+	crc ^= (uint16_t)byte;
+	for(size_t i = 0; i < 8; i++){
+		if(crc & 0x0001){
+			crc = (crc >> 1) ^ 0xA001;
 		} else {
-			LAProtocolV2RUnpack(&pr);
+			crc = (crc >> 1);
+		}
+	}
+		
+	return crc;
+}
+
+LAErrorCode LACalculateFCS_V2R(LASerialV2RecvProtocol *p, uint16_t *fcs){
+	LA_CHECK_NULLPTR(p);
+	LA_CHECK_NULLPTR(fcs);
+
+	uint16_t crc16 = 0xFFFF;
+
+	crc16 = LAModbusCRC16(crc16, p->command,              true);
+	crc16 = LAModbusCRC16(crc16, p->length & 0xFF,        false);
+	crc16 = LAModbusCRC16(crc16, (p->length >> 8) & 0xFF, false);
+
+	for(size_t i = 0; i < p->length; i++){
+		crc16 = LAModbusCRC16(crc16, p->data[i], false);
+	}
+
+	(*fcs) = crc16;
+	return LA_NO_ERROR;
+}
+
+LAErrorCode LAReadACKHandler(LASerialV2RecvProtocol *p){
+	LA_CHECK_NULLPTR(p);
+	
+	printf("RX Command ACK\n");
+	
+	// Handle ACK
+	atomic_store(&(lawp->mutexes.isWaitingACK), 0);
+	pthread_cond_signal(&(lawp->mutexes.condACK));
+
+	return LA_NO_ERROR;
+}
+
+LAErrorCode LAReadCaptureHandler(LASerialV2RecvProtocol *p){
+	LA_CHECK_NULLPTR(p);
+	
+	printf("RX Command CAPTURE\n");
+	
+	//Actually not used, but the buffer write function needs a uint16_t *
+	static uint16_t index = 0;
+
+	// don't write means discard all incoming capture data
+  if(atomic_load(&(lawp->rd.dontWrite))){
+  	return LA_NO_ERROR;
+  }
+	
+  // Writes to the oscilloscope buffer
+	LAWriteDataToDataBuffer(lawp, p->data, p->length, &index);
+
+	// Update offsets and counters
+	atomic_fetch_add(&(lawp->rd.dataOffset), p->length);
+  atomic_fetch_add(&(lawp->rd.sampleCounter), p->length);
+  
+  // Mark oscilloscope window as dirty
+	atomic_store(&(lawp->connect.dataHasChanged), 1);
+  
+  // Writes to bucket if there is a buffer
+  if(atomic_load(&(lawp->bd.bucketWrite))){
+  	LAHandleBucketWrite(p->data, p->length);
+  }
+  
+	return LA_NO_ERROR;
+}
+
+LAErrorCode LAProtocolV2RDispatch(LASerialV2RecvProtocol *p){
+	LA_CHECK_NULLPTR(p);
+
+	LAErrorCode code = LA_NO_ERROR;
+	
+	uint16_t fcs = 0x0;
+	code = LACalculateFCS_V2R(p, &fcs);
+	printf("FCS | calculated: %04X\treceived: %04X\n", fcs, p->fcs);
+	// FCS mismatch
+	if(fcs != p->fcs){
+		printf("Error, FCS does not match\n");
+		return LA_ERROR_MISMATCH_FCS;
+	}
+	
+	switch(p->command){
+		case LA_RX_COMMAND_NOP:     
+																printf("RX Command NOP\n");
+			                  				break;
+		case LA_RX_COMMAND_ACK:     
+																code = LAReadACKHandler(p);
+			                  				break;
+		case LA_RX_COMMAND_CAPTURE: 
+																code = LAReadCaptureHandler(p);
+			                  				break;
+		default:
+		                    				break;
+	}
+
+	return code;
+}
+
+void *LAReadThread(void *vlaw){
+	LAWindow *law = vlaw;
+//	uint16_t index = 0;
+//	uint16_t dataOffset = 0;
+//	LASerialV2RecvProtocol pr;
+	//LAProtocolV2RInit(&pr);
+
+	/*
+	tcflush(law->connect.fd, TCIFLUSH);
+	law->mutexes.isWaitingACK = 0;
+*/
+
+	uint8_t buffer[LA_READ_BUFFER_LENGTH];
+	ssize_t numBytes = 0;
+	
+	LAErrorCode code = LA_NO_ERROR;
+	
+	LAPacketParser parser;
+	code = LAPacketParserInit(&parser);
+	if(code) return NULL;
+	struct timespec lastTime;
+	clock_gettime(CLOCK_MONOTONIC, &lastTime);
+	double timeDelta = 0.0;
+	
+	do{
+		numBytes = read(law->connect.fd, &buffer, LA_READ_BUFFER_LENGTH);
+
+		// Handle EOF (0) or error (-1)
+		if(numBytes <= 0)        continue;
+		
+		// Discard previous data if timed out
+		if(LAHasTimeout(&lastTime, &timeDelta)){
+			printf("Last read has timeout, restarting protocol\n");
+			code = LAPacketParserClear(&parser);
+		}
+
+		clock_gettime(CLOCK_MONOTONIC, &lastTime);
+		printf("Time since last read: %lf\n", timeDelta);
+		printf("Bytes read: %li\n", numBytes);
+		printf("Payload:\n");
+		code = LADebugPrintHex(buffer, numBytes);		
+
+		bool isDone = false;
+		size_t bytesRead = 0;
+		while(bytesRead < (size_t)numBytes){
+			code = LAPacketParserParse(&parser, buffer, numBytes, &bytesRead, &isDone);
 			
-			g_print("Command: %i\n", pr.command);
-			g_print("Length: %i\n", pr.length);
-			switch(pr.command){
-				case LA_RX_COMMAND_ACK:	
-											printf("ACK received\n");
-										atomic_store(&(law->mutexes.isWaitingACK), 0);
-										pthread_cond_signal(&(law->mutexes.condACK));
-										break;
-
-				case LA_RX_COMMAND_CAPTURE:
-											printf("Capture received\n");
-											if(atomic_load(&(lawp->rd.dontWrite))){
-												continue;
-											}
-											
-											LAWriteDataToDataBuffer(law, pr.data, pr.length, &index);
-
-											if(atomic_load(&(law->rd.addDataOffset))){
-												dataOffset = index;
-												atomic_store(&(law->rd.dataOffset), dataOffset);
-											}
-
-											atomic_store(&(law->connect.dataHasChanged), 1);
-											atomic_fetch_add(&(law->rd.sampleCounter), numBytes);
-
-											if(atomic_load(&(law->bd.bucketWrite))){
-												LAHandleBucketWrite(buffer, numBytes);
-											}
-											
-											break;
-
+			// Error (Packet too big, nullptr, other)
+			if(code) {
+				printf("Parser error, (code %i)\n", code);
+				code = LAPacketParserClear(&parser);
+				isDone = false;
+				break;				
 			}
 
-			LAProtocolV2RInit(&pr);
-		}
-
-/*
-
-
-
-*/
+		  // Packet is okay
+			if(isDone){
+				printf("Packet received:\n");
+				code = LAProtocolV2RPrint(&(parser.data));
+				code = LAProtocolV2RDispatch(&(parser.data));
+				if(code){
+					printf("Dispatch error: code %i\n", code);
+				}
+				code = LAPacketParserClear(&parser);
+				isDone = false;
+			}
+		}	
+		
 	} while(1);
 
+	(void) code;
 	return NULL;
 }
 

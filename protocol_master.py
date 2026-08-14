@@ -3,21 +3,35 @@ import tty
 import os
 import random
 import time
+import numpy
 
 class Command:
     NOP = 0
     ACK = 1
     CAPTURE = 2
 
+def modbusCRC16(crc, byte, init):
+    if(init): crc = numpy.uint16(0xFFFF);
+        
+    crc ^= (byte & 0xFF);
+    
+    for _ in range(8):
+        if(crc & 0x0001):
+            crc = (crc >> 1) ^ 0xA001;
+        else:
+            crc = (crc >> 1);
+
+    return crc;
+   
 class PacketData:
-    def __init__(self, command, length, data, fcs):
+    def __init__(self, command, length, data):
         self.command = command
         self.length  = length
-        self.data    = data
-        self.fcs     = fcs
+        self.data    = data if data is not None else []
+        self.fcs     = self.calculate_fcs()
 
     def copy(self):
-        return PacketData(self.command, self.length, self.data, self.fcs)
+        return PacketData(self.command, self.length, self.data)
 
     def clear(self):
         self.command = 0x0
@@ -35,7 +49,21 @@ class PacketData:
     FCS: {self.fcs}
 """
 
+    def calculate_fcs(self):
+        fcs = numpy.uint16(0xFFFF);
+
+        fcs = modbusCRC16(fcs, self.command,              True)
+        fcs = modbusCRC16(fcs, self.length        & 0xFF, False)
+        fcs = modbusCRC16(fcs, (self.length >> 8) & 0xFF, False)
+
+        for byte in self.data:
+            fcs = modbusCRC16(fcs, byte, False)
+
+        return fcs
+
     def pack(self):
+        self.fcs = self.calculate_fcs()
+        
         bytedata = bytearray(self.length + 5)
         bytedata[0] = self.command       & 0xFF
         bytedata[1] = (self.length)      & 0xFF
@@ -49,10 +77,16 @@ class PacketData:
     def send(self, fd):
         bytedata = self.pack()
         os.write(fd, bytedata)
+        
+    def send_sparce(self, fd, wait_time):
+        bytedata = self.pack()
+        for byte in bytedata:
+            os.write(fd, bytes([byte]))
+            time.sleep(wait_time)
 
 class PacketParser:
     def __init__(self):
-        self.currentPacket = PacketData(0, 0, [], 0)
+        self.currentPacket = PacketData(0, 0, None)
         self.bytesread = 0
 
     def parse(self, bytedata):
@@ -104,16 +138,22 @@ timeout = 3
 lastRead = 0
 
 def send_ack(fd):
-    packet = PacketData(Command.ACK, 0, [], 0)
+    packet = PacketData(Command.ACK, 0, None)
     payload = packet.pack()
     print("To LogicAnalyzer:", payload)
     packet.send(fd)
 
 def send_capture(fd, size):
-    packet = PacketData(Command.CAPTURE, size, random.randbytes(size), 0)
+    packet = PacketData(Command.CAPTURE, size, random.randbytes(size))
     payload = packet.pack()
     print("To LogicAnalyzer:", payload)
     packet.send(fd)
+    
+def send_capture_sparce(fd, size, wait_time):
+    packet = PacketData(Command.CAPTURE, size, random.randbytes(size))
+    payload = packet.pack()
+    print("To LogicAnalyzer:", payload)
+    packet.send_sparce(fd, wait_time)
     
         
 while True:
@@ -133,4 +173,4 @@ while True:
     lastRead = currentRead
 
     send_ack(master)
-    send_capture(master, 32)
+    send_capture(master, random.randint(256, 1024))
