@@ -37,10 +37,11 @@ typedef enum {
 	LA_FILTER_WINDOW_POLY_CHEBYSHEV		= 29,
 	LA_FILTER_WINDOW_SMOOTH_TRAPZ		= 30,
 	LA_FILTER_WINDOW_ROOT_CHEBYSHEV		= 31,
-	LA_FILTER_WINDOW_COMPACT_SINE		= 32
+	LA_FILTER_WINDOW_COMPACT_SIN		= 32,
+	LA_FILTER_WINDOW_MODIFIED_COSC		= 33
 } LAFilterWindowType;
 
-#define LA_FILTER_WINDOW_COUNT 33
+#define LA_FILTER_WINDOW_COUNT 34
 
 LAErrorCode LAFilterGenerateWindowArray(double *buffer, size_t size, LAFilterWindowType windowType, double *params, size_t paramCount);
 LAErrorCode LAFilterGenerateRectWindow(double *array, size_t size, double *params, size_t paramCount);
@@ -76,5 +77,6 @@ LAErrorCode LAFilterGeneratePolyChebyshevWindow(double *array, size_t size, doub
 LAErrorCode LAFilterGenerateSmoothTrapezoidalWindow(double *array, size_t size, double *params, size_t paramCount);
 LAErrorCode LAFilterGenerateRootChebyshevSmoothWindow(double *array, size_t size, double *params, size_t paramCount);
 LAErrorCode LAFilterGenerateCompactSineWindow(double *array, size_t size, double *params, size_t paramCount);
+LAErrorCode LAFilterGenerateModifiedCoscWindow(double *array, size_t size, double *params, size_t paramCount);
 
 #endif //LA_FILTER_WINDOWS

@@ -6,9 +6,10 @@
 
 #define LA_SERIAL_FRAME_LENGTH     16
 #define LA_SERIAL_V2_DATA_LENGTH   257
-#define LA_SERIAL_V2_FRAME_LENGTH  261
+#define LA_SERIAL_V2_FRAME_LENGTH  269
 #define LA_SERIAL_V2R_DATA_LENGTH  1025
 #define LA_SERIAL_V2R_FRAME_LENGTH 1030
+#define LA_SERAIL_V2_VERSION 1
 
 #ifndef LASerialV2Protocol
 	typedef struct _la_serial_v2_protocol LASerialV2Protocol;
@@ -43,6 +44,11 @@ typedef enum {
 	LA_RX_COMMAND_CAPTURE		= 2
 } LARecvCommand;
 
+typedef enum {
+	LA_PROTOCOL_V2_FLAG_ACK  = 1 << 0,
+	LA_PROTOCOL_V2_FLAG_NACK = 1 << 1
+} LAProtocolV2Flags;
+
 typedef struct {
 	uint8_t command;
 	uint32_t value;
@@ -50,8 +56,12 @@ typedef struct {
 } LASerialProtocol;
 
 struct _la_serial_v2_protocol {
+	uint8_t version;
 	uint8_t command;
 	uint16_t length;
+	uint16_t flags;
+	uint16_t transactionId;
+	uint16_t headerChecksum;
 	uint16_t fcs;
 	uint8_t data[LA_SERIAL_V2_DATA_LENGTH];
 	uint8_t frames[LA_SERIAL_V2_FRAME_LENGTH];
@@ -62,6 +72,7 @@ struct _la_serial_v2_protocol {
 typedef struct {
 	uint8_t command;
 	uint16_t length;
+	uint16_t headerChecksum;
 	uint16_t fcs;
 	uint8_t data[LA_SERIAL_V2R_DATA_LENGTH];
 	uint8_t frames[LA_SERIAL_V2R_FRAME_LENGTH];
@@ -71,6 +82,7 @@ typedef struct {
 } LASerialV2RecvProtocol;
 
 // protocol
+uint16_t LAModbusCRC16(uint16_t crc, uint8_t byte, bool init);
 void LAPrepareProtocol(LASerialProtocol *p, uint8_t command, uint32_t value);
 void LAPrepareProtocolV2Basic(LASerialV2Protocol *p, uint8_t command, uint32_t value);
 uint8_t LAFuncPopcount(uint8_t value);

@@ -76,6 +76,19 @@ double df_rsqrt(double y, void *ptr){
 	return -2/(y*y*y);
 }
 */
+
+
+LAErrorCode listStoreCallback(LAListStore *list, LAListStoreNode *node, size_t index, void *data){
+
+	printf("i: %li\tx: %i\n", index, *(int *)(node->data));
+
+	(void) list;
+	(void) node;
+	(void) index;
+	(void) data;
+	return LA_NO_ERROR;
+}
+
 int main(int argc, char **argv){
 	/*
 	double x = 16;
@@ -212,17 +225,6 @@ int main(int argc, char **argv){
 		printf("i: %i\t code: %i\n", i, LAListStoreInsert(&list, &i, sizeof(int)));
 	}
 
-	LAErrorCode listStoreCallback(LAListStore *list, LAListStoreNode *node, size_t index, void *data){
-		if(node->data == NULL) return LA_ERROR_NULLPTR;
-
-		printf("i: %li\tx: %i\n", index, *(int *)(node->data));
-
-		(void) list;
-		(void) node;
-		(void) index;
-		(void) data;
-		return LA_NO_ERROR;
-	}
 
 	printf("code: %i\n", LAListStoreIter(&list, listStoreCallback, NULL));
 

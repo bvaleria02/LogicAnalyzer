@@ -90,4 +90,7 @@
 
 #define LA_MATRIX_INDEX(c, r, h) ((r)*(h) + (c))
 
+LAErrorCode LACheckedSizeAdd(size_t a, size_t b, size_t *c);
+
+
 #endif //LA_UTILS

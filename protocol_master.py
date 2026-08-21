@@ -24,14 +24,18 @@ def modbusCRC16(crc, byte, init):
     return crc;
    
 class PacketData:
-    def __init__(self, command, length, data):
+    def __init__(self, command, length, data, transactionId=0, headerChecksum=0, version=0, flags=0):
+        self.version = version
         self.command = command
         self.length  = length
+        self.transactionId = transactionId
+        self.flags = flags
+        self.headerChecksum = headerChecksum
         self.data    = data if data is not None else []
         self.fcs     = self.calculate_fcs()
 
     def copy(self):
-        return PacketData(self.command, self.length, self.data)
+        return PacketData(self.command, self.length, self.data, self.transactionId, self.headerChecksum, self.version, self.flags)
 
     def clear(self):
         self.command = 0x0
@@ -43,10 +47,14 @@ class PacketData:
         return f"""
     Packet data:
     -----------------------------
+    Version: {self.version}
     Command: {self.command}
     Length: {self.length}
+    Transaction ID: {hex(self.transactionId)}
+    Flags: {hex(self.flags)}
+    Header Checksum: {hex(self.headerChecksum)}
     Data: {self.data}
-    FCS: {self.fcs}
+    FCS: {hex(self.fcs)}
 """
 
     def calculate_fcs(self):
@@ -78,7 +86,7 @@ class PacketData:
         bytedata = self.pack()
         os.write(fd, bytedata)
         
-    def send_sparce(self, fd, wait_time):
+    def send_sparse(self, fd, wait_time):
         bytedata = self.pack()
         for byte in bytedata:
             os.write(fd, bytes([byte]))
@@ -97,22 +105,43 @@ class PacketParser:
 
         for byte in bytedata:
             if self.bytesread == 0:
+                self.currentPacket.version  = byte
+
+            if self.bytesread == 1:
                 self.currentPacket.command  = byte
 
-            elif self.bytesread == 1:
+            elif self.bytesread == 2:
                 self.currentPacket.length   = byte
                 
-            elif self.bytesread == 2:
+            elif self.bytesread == 3:
                 self.currentPacket.length  |= (byte << 8)
                 self.currentPacket.data     = [0] * self.currentPacket.length
 
-            elif (self.bytesread - 3) < self.currentPacket.length:
-                self.currentPacket.data[self.bytesread - 3] = byte
+            elif self.bytesread == 4:
+                self.currentPacket.transactionId   = byte
+                
+            elif self.bytesread == 5:
+                self.currentPacket.transactionId  |= (byte << 8)
 
-            elif self.bytesread == (3 + self.currentPacket.length + 0):
+            elif self.bytesread == 6:
+                self.currentPacket.flags  = byte
+                
+            elif self.bytesread == 7:
+                self.currentPacket.flags  |= (byte << 8)
+
+            elif self.bytesread == 8:
+                self.currentPacket.headerChecksum   = byte
+                
+            elif self.bytesread == 9:
+                self.currentPacket.headerChecksum  |= (byte << 8)
+
+            elif (self.bytesread > 9 and self.bytesread - 10) < self.currentPacket.length:
+                self.currentPacket.data[self.bytesread - 10] = byte
+
+            elif self.bytesread == (10 + self.currentPacket.length + 0):
                 self.currentPacket.fcs = byte
                 
-            elif self.bytesread == (3 + self.currentPacket.length + 1):
+            elif self.bytesread == (10 + self.currentPacket.length + 1):
                 self.currentPacket.fcs |= (byte << 8)
                 output.append(self.currentPacket.copy())
                 self.currentPacket.clear()
@@ -137,8 +166,8 @@ print(os.ttyname(slave))
 timeout = 3
 lastRead = 0
 
-def send_ack(fd):
-    packet = PacketData(Command.ACK, 0, None)
+def send_ack(fd, transactionId):
+    packet = PacketData(Command.ACK, 2, [transactionId & 0xFF, (transactionId >> 8) & 0xFF])
     payload = packet.pack()
     print("To LogicAnalyzer:", payload)
     packet.send(fd)
@@ -149,11 +178,11 @@ def send_capture(fd, size):
     print("To LogicAnalyzer:", payload)
     packet.send(fd)
     
-def send_capture_sparce(fd, size, wait_time):
+def send_capture_sparse(fd, size, wait_time):
     packet = PacketData(Command.CAPTURE, size, random.randbytes(size))
     payload = packet.pack()
     print("To LogicAnalyzer:", payload)
-    packet.send_sparce(fd, wait_time)
+    packet.send_sparse(fd, wait_time)
     
         
 while True:
@@ -172,5 +201,7 @@ while True:
     print("Time since last read:", timeDelta)
     lastRead = currentRead
 
-    send_ack(master)
-    send_capture(master, random.randint(256, 1024))
+    for packet in output:
+        if packet.flags & 0x1: send_ack(master, packet.transactionId)
+
+    send_capture(master, random.randint(3, 16))
