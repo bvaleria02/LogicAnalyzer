@@ -24,7 +24,7 @@ def modbusCRC16(crc, byte, init):
     return crc;
    
 class PacketData:
-    def __init__(self, command, length, data, transactionId=0, headerChecksum=0, version=0, flags=0):
+    def __init__(self, command, length, data, transactionId=0, headerChecksum=0, version=0, flags=0, magic=0):
         self.version = version
         self.command = command
         self.length  = length
@@ -32,14 +32,20 @@ class PacketData:
         self.flags = flags
         self.headerChecksum = headerChecksum
         self.data    = data if data is not None else []
+        self.magic   = magic
         self.fcs     = self.calculate_fcs()
 
     def copy(self):
-        return PacketData(self.command, self.length, self.data, self.transactionId, self.headerChecksum, self.version, self.flags)
+        return PacketData(self.command, self.length, self.data, self.transactionId, self.headerChecksum, self.version, self.flags, self.magic)
 
     def clear(self):
+        self.magic = 0
+        self.version = 0
         self.command = 0x0
         self.length = 0x0
+        self.transactionId = 0
+        self.flags = 0
+        self.headerChecksum = 0
         self.data = []
         self.fcs = 0x0
 
@@ -47,6 +53,7 @@ class PacketData:
         return f"""
     Packet data:
     -----------------------------
+    Magic: {hex(self.magic)}
     Version: {self.version}
     Command: {self.command}
     Length: {self.length}
@@ -105,43 +112,49 @@ class PacketParser:
 
         for byte in bytedata:
             if self.bytesread == 0:
-                self.currentPacket.version  = byte
-
-            if self.bytesread == 1:
-                self.currentPacket.command  = byte
+                self.currentPacket.magic  = byte
+                
+            elif self.bytesread == 1:
+                self.currentPacket.magic  |= (byte << 8)
 
             elif self.bytesread == 2:
+                self.currentPacket.version  = byte
+
+            elif self.bytesread == 3:
+                self.currentPacket.command  = byte
+
+            elif self.bytesread == 4:
                 self.currentPacket.length   = byte
                 
-            elif self.bytesread == 3:
+            elif self.bytesread == 5:
                 self.currentPacket.length  |= (byte << 8)
                 self.currentPacket.data     = [0] * self.currentPacket.length
 
-            elif self.bytesread == 4:
+            elif self.bytesread == 6:
                 self.currentPacket.transactionId   = byte
                 
-            elif self.bytesread == 5:
+            elif self.bytesread == 7:
                 self.currentPacket.transactionId  |= (byte << 8)
 
-            elif self.bytesread == 6:
+            elif self.bytesread == 8:
                 self.currentPacket.flags  = byte
                 
-            elif self.bytesread == 7:
+            elif self.bytesread == 9:
                 self.currentPacket.flags  |= (byte << 8)
 
-            elif self.bytesread == 8:
+            elif self.bytesread == 10:
                 self.currentPacket.headerChecksum   = byte
                 
-            elif self.bytesread == 9:
+            elif self.bytesread == 11:
                 self.currentPacket.headerChecksum  |= (byte << 8)
 
-            elif (self.bytesread > 9 and self.bytesread - 10) < self.currentPacket.length:
-                self.currentPacket.data[self.bytesread - 10] = byte
+            elif (self.bytesread > 11 and self.bytesread - 12) < self.currentPacket.length:
+                self.currentPacket.data[self.bytesread - 12] = byte
 
-            elif self.bytesread == (10 + self.currentPacket.length + 0):
+            elif self.bytesread == (12 + self.currentPacket.length + 0):
                 self.currentPacket.fcs = byte
                 
-            elif self.bytesread == (10 + self.currentPacket.length + 1):
+            elif self.bytesread == (12 + self.currentPacket.length + 1):
                 self.currentPacket.fcs |= (byte << 8)
                 output.append(self.currentPacket.copy())
                 self.currentPacket.clear()

@@ -5,10 +5,9 @@
 #include "error.h"
 #include "utils.h"
 #include "serial.h"
-
-// PLEASE, REMOVE WHEN MERGING WITH THE OTHER BRANCH, THIS IS FOR TESTING
-uint16_t transactionIdAccumulator = 0;
-
+#include "threads/ack.h"
+#include <gtk/gtk.h>
+#include "types.h"
 
 uint16_t LAModbusCRC16(uint16_t crc, uint8_t byte, bool init){
 	if(init) crc = 0xFFFF;
@@ -37,13 +36,24 @@ void LABigEndiandCpy32(uint8_t *dest, uint32_t value){
 LAErrorCode LAProtocolV2Init(LASerialV2Protocol *p){
 	LA_CHECK_NULLPTR(p);
 
-	p->command 			= LA_COMMAND_NOP;
-	p->length 			= 0;
-	p->transactionId 	= transactionIdAccumulator;
-	p->flags 			= LA_PROTOCOL_V2_FLAG_ACK;
-	p->headerChecksum 	= 0;
-	p->fcs 				= 0;
-	p->isReady 			= 0;
+	LAErrorCode code = LA_NO_ERROR;
+	
+	uint16_t transactionId = 0;
+	code = LARegisterACK(&(lawp->ack), &transactionId);
+	if(code) return code;
+	
+	p->magic          = LA_SERIAL_V2_MAGIC;
+	p->version        = LA_SERIAL_V2_VERSION;
+	p->command 			  = LA_COMMAND_NOP;
+	p->length 			  = 0;
+	p->transactionId 	= transactionId;
+	p->flags 			    = LA_PROTOCOL_V2_FLAG_ACK;
+	p->headerChecksum = 0;
+	p->fcs 				    = 0;
+	p->isReady 			  = 0;
+
+	code = LAPrintACKList(&(lawp->ack));
+	if(code) return code;
 
 	return LA_NO_ERROR;
 }
@@ -120,7 +130,6 @@ LAErrorCode LAPrepareProtocolV2Basic(LASerialV2Protocol *p, uint8_t command, uin
 	code = LACompileProtocolV2Frames(p);
 	if(code) return code;
 
-	transactionIdAccumulator++;
 	return LA_NO_ERROR;
 }
 
@@ -164,34 +173,74 @@ LAErrorCode LAHostToProtocolU32(uint32_t src, uint8_t *dest, size_t index, size_
 	return LA_NO_ERROR;
 }
 
+LAErrorCode LAProtocolToHostU16(uint16_t *dest, uint8_t *src, size_t index, size_t length){
+	LA_CHECK_NULLPTR(src);
+	LA_CHECK_NULLPTR(dest);
+
+	LAErrorCode code = LA_NO_ERROR;
+
+	size_t index1 = 0;
+	code = LACheckedSizeAdd(index, 1, &index1);
+	if(code) return code;
+
+	if(index1 >= length) return LA_ERROR_OUTOFBOUND;
+
+	(*dest)  = (uint16_t)(src[index    ]);
+	(*dest) |= (uint16_t)(src[index + 1]) << 8;
+
+	return LA_NO_ERROR;
+}
+
+LAErrorCode LAProtocolToHostU32(uint32_t *dest, uint8_t *src, size_t index, size_t length){
+	LA_CHECK_NULLPTR(src);
+	LA_CHECK_NULLPTR(dest);
+
+	LAErrorCode code = LA_NO_ERROR;
+
+	size_t index3 = 0;
+	code = LACheckedSizeAdd(index, 3, &index3);
+	if(code) return code;
+
+	if(index3 >= length) return LA_ERROR_OUTOFBOUND;
+
+	(*dest)  = (uint16_t)(src[index    ]);
+	(*dest) |= (uint16_t)(src[index + 1]) << 8;
+	(*dest) |= (uint16_t)(src[index + 2]) << 16;
+	(*dest) |= (uint16_t)(src[index + 3]) << 24;
+
+	return LA_NO_ERROR;
+}
+
 LAErrorCode LACompileProtocolV2Frames(LASerialV2Protocol *p){
 	LA_CHECK_NULLPTR(p);
 
 	LAErrorCode code = LA_NO_ERROR;
 
-	p->frames[0] = p->version;
-	p->frames[1] = p->command;
-	code = LAHostToProtocolU16(p->length,         p->frames, 2, LA_SERIAL_V2_FRAME_LENGTH);
+	code = LAHostToProtocolU16(p->magic,          p->frames, 0, LA_SERIAL_V2_FRAME_LENGTH);
 	if(code) return code;
-	code = LAHostToProtocolU16(p->transactionId,  p->frames, 4, LA_SERIAL_V2_FRAME_LENGTH);
+	p->frames[2] = p->version;
+	p->frames[3] = p->command;
+	code = LAHostToProtocolU16(p->length,         p->frames, 4, LA_SERIAL_V2_FRAME_LENGTH);
 	if(code) return code;
-	code = LAHostToProtocolU16(p->flags,          p->frames, 6, LA_SERIAL_V2_FRAME_LENGTH);
+	code = LAHostToProtocolU16(p->transactionId,  p->frames, 6, LA_SERIAL_V2_FRAME_LENGTH);
 	if(code) return code;
-	code = LAHostToProtocolU16(p->headerChecksum, p->frames, 8, LA_SERIAL_V2_FRAME_LENGTH);
+	code = LAHostToProtocolU16(p->flags,          p->frames, 8, LA_SERIAL_V2_FRAME_LENGTH);
+	if(code) return code;
+	code = LAHostToProtocolU16(p->headerChecksum, p->frames, 10, LA_SERIAL_V2_FRAME_LENGTH);
 	if(code) return code;
 	//p->frames[1] = (p->length >> 0) & 0xFF;
 	//p->frames[2] = (p->length >> 8) & 0xFF; 
 
 	for(uint16_t i = 0; i < p->length; i++){
-		p->frames[10+i] = p->data[i];
+		p->frames[12+i] = p->data[i];
 	}
 
-	code = LAHostToProtocolU16(p->fcs, p->frames, 10 + p->length, LA_SERIAL_V2_FRAME_LENGTH);
+	code = LAHostToProtocolU16(p->fcs, p->frames, 12 + p->length, LA_SERIAL_V2_FRAME_LENGTH);
 	if(code) return code;
 	//p->frames[3+p->length] = (p->fcs >> 0) & 0xFF;
 	//p->frames[4+p->length] = (p->fcs >> 8) & 0xFF;
 
-	p->frameLength = 12 + p->length;
+	p->frameLength = 14 + p->length;
 	p->isReady = 1;
 
 	return LA_NO_ERROR;

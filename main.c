@@ -80,7 +80,7 @@ double df_rsqrt(double y, void *ptr){
 */
 
 
-LAErrorCode listStoreCallback(LAListStore *list, LAListStoreNode *node, size_t index, void *data){
+LAErrorCode listStoreCallback(LAListStore *list, LAListStoreNode *node, size_t index, void *data, bool *stopIter){
 
 	printf("i: %li\tx: %i\n", index, *(int *)(node->data));
 
@@ -88,6 +88,7 @@ LAErrorCode listStoreCallback(LAListStore *list, LAListStoreNode *node, size_t i
 	(void) node;
 	(void) index;
 	(void) data;
+	(void) stopIter;
 	return LA_NO_ERROR;
 }
 
@@ -272,7 +273,7 @@ int main(int argc, char **argv){
 	printf("Found: %i\tRTT: %lf ms\n", found, rtt);
 	
 	LAPrintACKList(&(law.ack));
-
+/*
 	LADequeStore deque = {0};
 	LADequeStoreInit(&deque, 0, true, 0, false);
 
@@ -301,7 +302,7 @@ int main(int argc, char **argv){
 	}
 	
 	LADequeStoreIter(&deque, dequeStoreCallback, NULL);
-
+*/
 	size_t matches = 0;
 
 	printf("Sleep for 2 seconds (2 total)\n");
