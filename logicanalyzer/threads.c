@@ -157,20 +157,6 @@ LAErrorCode LAProtocolV2RPrint(LASerialV2RecvProtocol *p){
 	return code;
 }
 
-uint16_t LAModbusCRC16(uint16_t crc, uint8_t byte, bool init){
-	if(init) crc = 0xFFFF;
-
-	crc ^= (uint16_t)byte;
-	for(size_t i = 0; i < 8; i++){
-		if(crc & 0x0001){
-			crc = (crc >> 1) ^ 0xA001;
-		} else {
-			crc = (crc >> 1);
-		}
-	}
-		
-	return crc;
-}
 
 LAErrorCode LACalculateFCS_V2R(LASerialV2RecvProtocol *p, uint16_t *fcs){
 	LA_CHECK_NULLPTR(p);

@@ -217,6 +217,12 @@ LAFilterWindowDetails LAWindowTypeDetails[LA_FILTER_WINDOW_COUNT] = {
 		{"Phase",			0,		-1,		1,		0.001,	0.01,	3},
 		{"Duty Cycle",		0.5,	0,		1,		0.001,	0.01,	3}},
 		LAFilterGenerateCompactSineWindow
+	},
+	{"Modified Cardinal Cosine", {
+		{"Frequency",		1,	-32768,		32767,	    0.01,	1,		2},
+		{"Bias",			1,	-32768,		32767,		0.001,	0.01,	3},
+		{"Duty Cycle",		1,	-32768,		32767,		0.001,	0.01,	3}},
+		LAFilterGenerateModifiedCoscWindow
 	}
 };
 
@@ -881,6 +887,22 @@ LAErrorCode LAFilterGenerateCompactSineWindow(double *array, size_t size, double
 		} else {
 			array[i] = 0;
 		}
+	}
+
+	return LA_NO_ERROR;
+}
+
+LAErrorCode LAFilterGenerateModifiedCoscWindow(double *array, size_t size, double *params, size_t paramCount){
+	LA_HANDLE_NULLPTR(array, LA_PROPAGATE_ERROR);
+	LA_HANDLE_NULLPTR(params, LA_PROPAGATE_ERROR);
+
+	double a 	= LA_GET_PARAMETER(0, params, paramCount);
+	double b 	= LA_GET_PARAMETER(1, params, paramCount);
+	double c 	= LA_GET_PARAMETER(2, params, paramCount);
+
+	for(size_t i = 0; i < size; i++){
+		double x = i - (size / (double) 2.0);
+		array[i] = b * cos(2 * M_PI * a * c * x) / (x*x*c*c + b);
 	}
 
 	return LA_NO_ERROR;

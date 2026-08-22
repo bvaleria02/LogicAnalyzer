@@ -90,4 +90,11 @@
 
 #define LA_MATRIX_INDEX(c, r, h) ((r)*(h) + (c))
 
+#define LA_MIN(a, b) (((a) < (b)) ? (a) : (b))
+#define LA_MAX(a, b) (((a) > (b)) ? (a) : (b))
+
+
+LAErrorCode LACheckedSizeAdd(size_t a, size_t b, size_t *c);
+
+
 #endif //LA_UTILS

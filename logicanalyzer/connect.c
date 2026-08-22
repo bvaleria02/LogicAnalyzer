@@ -288,6 +288,8 @@ int LACreateConnectWindow(GtkWidget *widget, LAWindow *law){
 	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(lac->dropdown), "/dev/pts/5");
 	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(lac->dropdown), "/dev/pts/6");
 	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(lac->dropdown), "/dev/pts/7");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(lac->dropdown), "/dev/pts/8");
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(lac->dropdown), "/dev/pts/9");
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lac->dropdown), 1);
 
 	lac->connect 		= gtk_button_new_with_label("Connect");
