@@ -1,10 +1,12 @@
 #include "../error.h"
+#include "../utils.h"
 #include "../liblogicanalyzer.h"
 #include "model.h"
 #include "error.h"
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 const LAItemModelVTable LAItemModelVTableBase = {
   .destroy         = (LAItemModelFnDestroy) LAItemModelDestroy,
@@ -22,9 +24,23 @@ const LAItemModelVTable LAItemModelVTableBase = {
   .iter            = (LAItemModelFnIter) LAItemModelIter,
   .insert          = (LAItemModelFnInsert) LAItemModelInsert,
   .remove          = (LAItemModelFnRemove) LAItemModelRemove,
-  .get             = (LAItemModelFnGet) LAItemModelGet
+  .get             = (LAItemModelFnGet) LAItemModelGet,
 };
 
+LAErrorCode LAItemModelCopyMetadata(LAItemModel *modelSrc, LAItemModel *modelDest){
+  LA_CHECK_NULLPTR(modelSrc);
+  LA_CHECK_NULLPTR(modelDest);
+
+  size_t vtableOffset = sizeof(LAItemModelVTable *);
+  
+  memcpy(
+         ((uint8_t *)modelDest) + vtableOffset,
+         ((uint8_t *)modelSrc)  + vtableOffset,
+         sizeof(LAItemModel) - vtableOffset
+        );
+
+  return LA_NO_ERROR;
+}
 
 LAErrorCode LAItemModelInit(LAItemModel *model, size_t maxNodeCount, bool isInfinite, size_t defaultNodeSize, bool useDefaultSize){
   LA_HANDLE_NULLPTR(model, LA_PROPAGATE_ERROR);
@@ -176,10 +192,14 @@ LAErrorCode LAItemModelInsert(LAItemModel *model, void *data, size_t length){
   return LALogStructureErrorBase((void *)model, "itemModel", "insert");
 }
 
-LAErrorCode LAItemModelRemove(LAItemModel *model){
-  LA_HANDLE_NULLPTR(model, LA_PROPAGATE_ERROR);
+LAErrorCode LAItemModelRemove(LAItemModel *model, void **data, size_t *length){
+  LA_CHECK_NULLPTR(model);
+  LA_CHECK_NULLPTR(data);
+  LA_CHECK_NULLPTR(length);
 
   (void) model;
+  (void) data;
+  (void) length;
   return LALogStructureErrorBase((void *)model, "itemModel", "remove");
 }
 
@@ -193,3 +213,4 @@ LAErrorCode LAItemModelGet(const LAItemModel *model, void **data, size_t *length
   (void) length;
   return LALogStructureErrorBase((void *)model, "itemModel", "get");
 }
+

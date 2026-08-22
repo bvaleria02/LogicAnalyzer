@@ -15,6 +15,8 @@
 #include "logicanalyzer/matrix/matrix.h"
 #include "logicanalyzer/la_bigint/laBigInt.h"
 #include "logicanalyzer/structures/listStore.h"
+#include "logicanalyzer/structures/dequeStore.h"
+#include "logicanalyzer/threads/ack.h"
 #include <stdbool.h>
 
 LAWindow *lawp;
@@ -212,7 +214,7 @@ int main(int argc, char **argv){
 		printf("i: %i\t code: %i\n", i, LAListStoreInsert(&list, &i, sizeof(int)));
 	}
 
-	LAErrorCode listStoreCallback(LAListStore *list, LAListStoreNode *node, size_t index, void *data){
+	LAErrorCode listStoreCallback(LAListStore *list, LAListStoreNode *node, size_t index, void *data, bool *stopIter){
 		if(node->data == NULL) return LA_ERROR_NULLPTR;
 
 		printf("i: %li\tx: %i\n", index, *(int *)(node->data));
@@ -221,6 +223,7 @@ int main(int argc, char **argv){
 		(void) node;
 		(void) index;
 		(void) data;
+		(void) stopIter;
 		return LA_NO_ERROR;
 	}
 
@@ -234,6 +237,84 @@ int main(int argc, char **argv){
 
 	LAWindow law;
 	lawp = &law;
+
+	LAListStoreInit(&(law.ack.ackList), 0, true, 0, false);
+	law.ack.ackMutex = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
+	law.ack.transactionIdMutex = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
+	LARegisterACK(&(law.ack), NULL);
+	LARegisterACK(&(law.ack), NULL);
+	LARegisterUsingIdACK(&(law.ack), 0x42);
+	LARegisterUsingIdACK(&(law.ack), 0x13);
+	LARegisterUsingIdACK(&(law.ack), 0x67);
+	LARegisterUsingIdACK(&(law.ack), 0x69);
+	LARegisterACK(&(law.ack), NULL);
+	LARegisterUsingIdACK(&(law.ack), 0x420);
+	LARegisterUsingIdACK(&(law.ack), 0x666);
+	LARegisterUsingIdACK(&(law.ack), 0x777);
+	LARegisterUsingIdACK(&(law.ack), 0x1337);
+	LARegisterUsingIdACK(&(law.ack), 0x6942);
+	LARegisterUsingIdACK(&(law.ack), 0x6666);
+	LARegisterUsingIdACK(&(law.ack), 0x6969);
+	LARegisterUsingIdACK(&(law.ack), 0x8085);
+	LARegisterACK(&(law.ack), NULL);
+	LARegisterACK(&(law.ack), NULL);
+	LARegisterACK(&(law.ack), NULL);
+	LARegisterACK(&(law.ack), NULL);
+	LAPrintACKList(&(law.ack));
+
+	bool found = false;
+	size_t ackIndex = 0;
+	LAFindACK(&(law.ack), 0x420, &found, &ackIndex);
+	printf("Found: %i\nIndex: %li\n", found, ackIndex);
+
+	double rtt = 0.0;
+	LAResolveACK(&(law.ack), 0x420, &found, &rtt);
+	printf("Found: %i\tRTT: %lf ms\n", found, rtt);
+	
+	LAPrintACKList(&(law.ack));
+
+	LADequeStore deque = {0};
+	LADequeStoreInit(&deque, 0, true, 0, false);
+
+	size_t testInt = 0x69;	
+	LADequeStorePush(&deque, (void *)(&testInt), sizeof(size_t));
+	testInt = 0x42;	
+	LADequeStorePush(&deque, (void *)(&testInt), sizeof(size_t));
+	testInt = 0x666;	
+	LADequeStorePushLeft(&deque, (void *)(&testInt), sizeof(size_t));
+	testInt = 0x69420;	
+	LADequeStorePushLeft(&deque, (void *)(&testInt), sizeof(size_t));
+	testInt = 0x1337;	
+	LADequeStorePush(&deque, (void *)(&testInt), sizeof(size_t));
+
+	LAErrorCode dequeStoreCallback(LAListStore *list, LAListStoreNode *node, size_t index, void *data, bool *stopIter){
+		if(node->data == NULL) return LA_ERROR_NULLPTR;
+
+		printf("Node: %li\tx: 0x%016lX\n", index, *(size_t *)(node->data));
+
+		(void) list;
+		(void) node;
+		(void) index;
+		(void) data;
+		(void) stopIter;
+		return LA_NO_ERROR;
+	}
+	
+	LADequeStoreIter(&deque, dequeStoreCallback, NULL);
+
+	size_t matches = 0;
+
+	printf("Sleep for 2 seconds (2 total)\n");
+	sleep(2);
+	LAResolveTimeoutACK(&(law.ack), &matches);
+	LAPrintACKList(&(law.ack));
+	printf("%li matches last LAResolveTimeoutACK\n", matches);
+	
+	printf("Sleep for 4 seconds (6 total)\n");
+	sleep(4);
+	LAResolveTimeoutACK(&(law.ack), &matches);
+	LAPrintACKList(&(law.ack));
+	printf("%li matches last LAResolveTimeoutACK\n", matches);
 
 	LAWindowCreate(&law);
 	LAWindowCreateMenu(&law);
@@ -249,5 +330,8 @@ int main(int argc, char **argv){
 	}
 
 	LAWindowRun(&law);
+	
+	LAListStore *acklistp = &(law.ack.ackList);
+	LAListStoreDestroy(&(acklistp));
 	return 0;
 }

@@ -76,7 +76,7 @@
 // No error handling
 #define LA_MUTEX(__mut, __code) do {                                 \
   /* General lock */                                                 \
-  pthread_mutex_lock(&(__mut));                                      \
+  pthread_mutex_lock((__mut));                                      \
                                                                      \
   /* "Try" block                                                     \
      THREAD SAFE */                                                  \
@@ -85,7 +85,7 @@
   } while(0);                                                        \
                                                                      \
   /* General unlock */                                               \
-  pthread_mutex_unlock(&(__mut));                                    \
+  pthread_mutex_unlock((__mut));                                    \
 } while(0)
 
 #define LA_MATRIX_INDEX(c, r, h) ((r)*(h) + (c))

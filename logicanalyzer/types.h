@@ -1,6 +1,9 @@
 #ifndef LA_TYPES
 #define LA_TYPES
 
+#include "structures/listStore.h"
+#include "threads/ack.h"
+
 #ifndef LABucket
 	typedef struct _la_bucket LABucket;
 #endif
@@ -190,9 +193,11 @@ typedef struct {
 	pthread_mutex_t bucketAccess;
 	pthread_mutex_t dataBufferAccess;
 
+
 	uint8_t isWaitingACK;
 	pthread_mutex_t lockACK;
 	pthread_cond_t condACK;
+
 } LAMutexes;
 
 typedef struct {
@@ -234,6 +239,8 @@ struct _la_window {
 	GtkWidget *container;
 	GtkWidget *scrollableChannels;
 	GtkWidget *vbox;
+
+	LAACK ack;
 };
 
 typedef struct {

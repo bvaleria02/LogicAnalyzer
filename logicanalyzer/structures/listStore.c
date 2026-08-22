@@ -1,4 +1,5 @@
 #include "../liblogicanalyzer.h"
+#include "../utils.h"
 #include "model.h"
 #include "itemListable.h"
 #include "listStore.h"
@@ -27,11 +28,14 @@ const LAListStoreVTable LAListStoreVTableBase = {
       .iter            = (LAItemModelFnIter) LAListStoreIter,
       .insert          = (LAItemModelFnInsert) LAListStoreInsert,
       .remove          = (LAItemModelFnRemove) LAListStoreRemove,
-      .get             = (LAItemModelFnGet) LAListStoreGet
+      .get             = (LAItemModelFnGet) LAListStoreGet,
     },
-    .insertAt = (LAItemListableFnInsertAt) LAListStoreInsertAt,
-    .removeAt = (LAItemListableFnRemoveAt) LAListStoreRemoveAt,
-    .getAt    = (LAItemListableFnGetAt) LAListStoreGetAt
+    .insertAt        = (LAItemListableFnInsertAt) LAListStoreInsertAt,
+    .removeAt        = (LAItemListableFnRemoveAt) LAListStoreRemoveAt,
+    .getAt           = (LAItemListableFnGetAt) LAListStoreGetAt,
+    .find            = (LAItemListableFnFind) LAListStoreFind,
+    .findRemove      = (LAItemListableFnFindRemove) LAListStoreFindRemove,
+    .findRemoveAll   = (LAItemListableFnFindRemoveAll) LAListStoreFindRemoveAll,
   }
 };
 
@@ -236,27 +240,72 @@ LAErrorCode LAListStoreGetMaxNodeCount(const LAListStore *list, size_t *count){
   return code;  
 }
 
+LAErrorCode LAListStoreIterator_backend(LAListStore *list, LAListStoreCallback callback, void *data, bool *found, size_t *foundIndex, LAListStoreNode **foundNode, LAListStoreNode *nodeStart, bool *hasFinished){
+  LA_CHECK_NULLPTR(list);
+  LA_CHECK_NULLPTR(callback);
+
+  LAErrorCode code = LA_NO_ERROR;
+  
+  // Initializes for search
+  if(found != NULL)    (*found)     = false;
+  if(foundNode != NULL)(*foundNode) = NULL;
+  if(hasFinished != NULL) (*hasFinished) = false;
+  
+  bool stopIter = false;
+  
+  LAListStoreNode *node = (nodeStart != NULL) ? nodeStart : list->head;
+  size_t listIndex = 0;
+  
+  while(node != NULL){
+    // Skip head node
+    if(node->sentinel == LA_LIST_STORE_SENTINEL_HEAD){
+      node = node->next;
+      continue;
+    }
+
+    // Stop if tail node is reached
+    if((node->sentinel == LA_LIST_STORE_SENTINEL_TAIL) || (node->next == NULL)){
+      if(hasFinished != NULL) (*hasFinished) = true;
+      break;
+    }
+
+    // Actual iteration in non-sentinel nodes
+    code = callback(LA_LIST_STORE(list), node, listIndex, data, &stopIter);
+    if(code) break;
+
+    // Continues if stopIter is false
+    if(!stopIter){
+      node = node->next;
+      listIndex++;
+      continue;
+    }
+
+    // stopIter is true, handle match, and break;
+    if(found != NULL)     (*found)      = true;
+    if(foundIndex != NULL)(*foundIndex) = listIndex;
+    if(foundNode != NULL) (*foundNode)  = node;
+    break;
+  }
+  
+  return code;
+}
+
 LAErrorCode LAListStoreIter(LAListStore *list, LAListStoreCallback callback, void *data){
   LA_HANDLE_NULLPTR(list, LA_PROPAGATE_ERROR);
   LA_HANDLE_NULLPTR(callback, LA_PROPAGATE_ERROR);
 
   LAErrorCode code = LA_NO_ERROR;
-  LAListStoreNode *node = list->head;
-  size_t i = 0;
-  while(node != NULL){
-    if(node->sentinel == LA_LIST_STORE_SENTINEL_HEAD){
-      node = node->next;
-      continue;
-    }
-    
-    if(node->sentinel == LA_LIST_STORE_SENTINEL_TAIL){
-      break;
-    }
-    
-    code = callback(list, node, i, data);
-    node = node->next;
-    i++;
-  }
+  
+  code = LAListStoreIterator_backend(
+              list,
+              callback,
+              data,
+              NULL,
+              NULL,
+              NULL,
+              NULL,
+              NULL
+            );
   
   return code;  
 }
@@ -315,18 +364,29 @@ LAErrorCode LAListStoreRemoveBetweenNodes(LAListStoreNode *node){
   return LA_NO_ERROR;
 }
 
-LAErrorCode LAListStoreRemove(LAListStore *list){
+LAErrorCode LAListStoreRemove(LAListStore *list, void **data, size_t *length){
   LA_HANDLE_NULLPTR(list, LA_PROPAGATE_ERROR);
+
+  if(data != NULL) (*data) = NULL;
 
   LAErrorCode code = LA_NO_ERROR;
   
   LAListStoreNode *node = (list->tail)->prev;
+
+  if((node != NULL) && (node->sentinel == LA_LIST_STORE_SENTINEL_NONE) && (data != NULL)){
+    (*data) = malloc(node->length);
+    if((*data) == NULL) return LA_ERROR_MALLOC;
+    memcpy((*data), node->data, node->length);
+    if(length != NULL) (*length) = node->length;
+  }
 
   code = LAListStoreRemoveBetweenNodes(node);
   if(code) return code;
 
   if(node != NULL) free(node);
   
+  (void) data;
+  (void) length;
   return code;  
 }
 
@@ -352,23 +412,92 @@ LAErrorCode LAListStoreGet(const LAListStore *list, void **data, size_t *length)
   return code;  
 }
 
+LAErrorCode LAListStoreIndexSearchCallback(LAListStore *list, LAListStoreNode *node, size_t index, void *data, bool *stopIter){
+  size_t targetIndex = *(size_t *)data;
+
+  if(targetIndex == index){
+    (*stopIter) = true;
+  }
+
+  (void) list;
+  (void) node;
+  return LA_NO_ERROR;
+}
+
 LAErrorCode LAListStoreInsertAt(LAListStore *list, const size_t index, void *data, size_t length){
   LA_HANDLE_NULLPTR(list, LA_PROPAGATE_ERROR);
   LA_HANDLE_NULLPTR(data,  LA_PROPAGATE_ERROR);
 
-  (void) list;
-  (void) index;
-  (void) data;
-  (void) length;
-  return LALogStructureErrorBase((void *)list, "listStore", "insertAt");
+  LAErrorCode code = LA_NO_ERROR;
+
+  bool found = false;
+  LAListStoreNode *foundNode = NULL;
+
+  code = LAListStoreIterator_backend(
+              LA_LIST_STORE(list),
+              LAListStoreIndexSearchCallback,
+              (void *)(&index),
+              &found,
+              NULL,
+              &foundNode,
+              NULL,
+              NULL
+            );
+
+  if(!found) return LA_ERROR_OUTOFBOUND;
+
+  LAListStoreNode *newNode = NULL;
+  code = LAListStoreCreateNode(
+            &newNode,
+            list->listable.model.defaultNodeLength,
+            length,
+            data,
+            LA_LIST_STORE_SENTINEL_NONE,
+            list->listable.model.useDefaultSize
+        );
+  if(code) goto cleanup;
+
+  code = LAListStoreInsertBetweenNodes(foundNode->prev, foundNode, newNode);
+  if(code) goto cleanup;
+  
+  return LA_NO_ERROR;
+  
+cleanup:
+  if(newNode != NULL) free(newNode);
+  return code;
 }
 
-LAErrorCode LAListStoreRemoveAt(LAListStore *list, const size_t index){
+LAErrorCode LAListStoreRemoveAt(LAListStore *list, const size_t index, void **data, size_t *length){
   LA_HANDLE_NULLPTR(list, LA_PROPAGATE_ERROR);
   
-  (void) list;
-  (void) index;
-  return LALogStructureErrorBase((void *)list, "listStore", "removeAt");
+  LAErrorCode code = LA_NO_ERROR;
+  bool found = false;
+  LAListStoreNode *foundNode = NULL;
+
+  code = LAListStoreIterator_backend(
+              LA_LIST_STORE(list),
+              LAListStoreIndexSearchCallback,
+              (void *)(&index),
+              &found,
+              NULL,
+              &foundNode,
+              NULL,
+              NULL
+            );
+  if(code) return code;
+
+  if(!found) return LA_ERROR_OUTOFBOUND;
+  
+  if(data != NULL){
+    (*data) = malloc(foundNode->length);
+    if((*data) == NULL) return LA_ERROR_MALLOC;
+    memcpy((*data), foundNode->data, foundNode->length);
+    if(length != NULL) (*length) = foundNode->length;
+  }
+  
+  if(foundNode != NULL) free(foundNode);
+
+  return LA_NO_ERROR;  
 }
 
 LAErrorCode LAListStoreGetAt(const LAListStore *list, const size_t index, void **data, size_t *length){
@@ -376,9 +505,123 @@ LAErrorCode LAListStoreGetAt(const LAListStore *list, const size_t index, void *
   LA_HANDLE_NULLPTR(data,   LA_PROPAGATE_ERROR);
   LA_HANDLE_NULLPTR(length, LA_PROPAGATE_ERROR);
   
-  (void) list;
-  (void) index;
-  (void) data;
-  (void) length;
-  return LALogStructureErrorBase((void *)list, "listStore", "getAt");
+  LAErrorCode code = LA_NO_ERROR;
+  bool found = false;
+  LAListStoreNode *foundNode = NULL;
+
+  code = LAListStoreIterator_backend(
+              LA_LIST_STORE(list),
+              LAListStoreIndexSearchCallback,
+              (void *)(&index),
+              &found,
+              NULL,
+              &foundNode,
+              NULL,
+              NULL
+            );
+  if(code) return code;
+
+  if(!found) return LA_ERROR_OUTOFBOUND;
+
+  (*data) = foundNode->data;
+  (*length) = foundNode->length;
+  
+  return LA_NO_ERROR;  
 }
+
+LAErrorCode LAListStoreFind(const LAListStore *list, LAListStoreCallback callback, void *data, bool *found, size_t *foundIndex, void **nodeData){
+  LA_CHECK_NULLPTR(list);
+  LA_CHECK_NULLPTR(callback);
+  LA_CHECK_NULLPTR(found);
+  LA_CHECK_NULLPTR(foundIndex);
+
+  LAErrorCode code = LA_NO_ERROR;
+  LAListStoreNode *foundNode = NULL;
+  
+  code = LAListStoreIterator_backend(
+              LA_LIST_STORE(list),
+              callback,
+              data,
+              found,
+              foundIndex,
+              &foundNode,
+              NULL,
+              NULL
+            );
+
+  if((nodeData != NULL) && (foundNode != NULL)){
+    (*nodeData) = (*found) ? foundNode->data : NULL;
+  }
+
+  return code;
+}
+
+LAErrorCode LAListStoreFindRemove(LAListStore *list, LAListStoreCallback callback, void *data, bool *found){
+  LA_CHECK_NULLPTR(list);
+  LA_CHECK_NULLPTR(callback);
+  LA_CHECK_NULLPTR(found);
+
+  LAErrorCode code = LA_NO_ERROR;
+  LAListStoreNode *foundNode = NULL;
+  
+  code = LAListStoreIterator_backend(
+              list,
+              callback,
+              data,
+              found,
+              NULL,
+              &foundNode,
+              NULL,
+              NULL
+            );
+  
+  if(code) return code;
+
+  if((*found) && (foundNode != NULL)){
+    code = LAListStoreRemoveBetweenNodes(foundNode);
+    if(code) return code;
+    if(foundNode != NULL) free(foundNode);
+  }
+
+  return code;
+}
+
+LAErrorCode LAListStoreFindRemoveAll(LAListStore *list, LAListStoreCallback callback, void *data, size_t *matches){
+  LA_CHECK_NULLPTR(list);
+  LA_CHECK_NULLPTR(callback);
+
+  LAErrorCode code = LA_NO_ERROR;
+  LAListStoreNode *foundNode = NULL;
+  bool found = false;
+  bool hasEnded = false;
+  LAListStoreNode *nodeStart = NULL;
+
+  if(matches != NULL) (*matches) = 0;
+  
+  do{
+    // Iteration
+    code = LAListStoreIterator_backend(
+              list,
+              callback,
+              data,
+              &found,
+              NULL,
+              &foundNode,
+              nodeStart,
+              &hasEnded
+            );
+    if(code) return code;
+
+    // Handle remove
+    if(found && (foundNode != NULL)){
+      if(matches != NULL) (*matches) += 1;
+      nodeStart = foundNode->next;
+      code = LAListStoreRemoveBetweenNodes(foundNode);
+      if(code) return code;
+      if(foundNode != NULL) free(foundNode);
+    }
+  } while(!hasEnded);
+
+  return code;
+}
+

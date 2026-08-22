@@ -8,10 +8,10 @@
 #include <stdlib.h>
 
 typedef struct LAItemStackable LAItemStackable;
-typedef LAErrorCode (*LAItemStackableCallback)(LAItemStackable *stackable, void *node, size_t index, void *data);
+typedef LAErrorCode (*LAItemStackableCallback)(LAItemStackable *stackable, void *node, size_t index, void *data, bool *stopIter);
 
 typedef LAErrorCode (*LAItemStackableFnPush)(LAItemStackable *stackable, void *data, size_t length);
-typedef LAErrorCode (*LAItemStackableFnPop)(LAItemStackable *stackable);
+typedef LAErrorCode (*LAItemStackableFnPop)(LAItemStackable *stackable, void **data, size_t *length);
 typedef LAErrorCode (*LAItemStackableFnPeek)(LAItemStackable *stackable, void **data, size_t *length);
 
 typedef struct {
@@ -45,7 +45,7 @@ LAErrorCode LAItemStackableSetMaxNodeCount(LAItemStackable *stackable, size_t co
 LAErrorCode LAItemStackableGetMaxNodeCount(const LAItemStackable *stackable, size_t *count);
 LAErrorCode LAItemStackableIter(LAItemStackable *stackable, LAItemStackableCallback callback, void *data);
 LAErrorCode LAItemStackablePush(LAItemStackable *stackable, void *data, size_t length);
-LAErrorCode LAItemStackablePop(LAItemStackable *stackable);
+LAErrorCode LAItemStackablePop(LAItemStackable *stackable, void **data, size_t *length);
 LAErrorCode LAItemStackablePeek(const LAItemModel *stackable, void **data, size_t *length);
 
 #endif //LA_ITEM_STACKABLE_H
