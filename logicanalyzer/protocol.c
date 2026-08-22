@@ -34,6 +34,20 @@ void LABigEndiandCpy32(uint8_t *dest, uint32_t value){
 	dest[3] = (value >> 24) & 0xFF;
 }
 
+LAErrorCode LAProtocolV2Init(LASerialV2Protocol *p){
+	LA_CHECK_NULLPTR(p);
+
+	p->command 			= LA_COMMAND_NOP;
+	p->length 			= 0;
+	p->transactionId 	= transactionIdAccumulator;
+	p->flags 			= LA_PROTOCOL_V2_FLAG_ACK;
+	p->headerChecksum 	= 0;
+	p->fcs 				= 0;
+	p->isReady 			= 0;
+
+	return LA_NO_ERROR;
+}
+
 void LAPrepareProtocol(LASerialProtocol *p, uint8_t command, uint32_t value){
 	if(p == NULL) return;
 	p->command = command;
@@ -64,45 +78,56 @@ LAErrorCode LAProtocolV2GetHeaderChecksum(LASerialV2Protocol *p, uint16_t *check
 	return LA_NO_ERROR;
 }
 
-void LAPrepareProtocolV2Basic(LASerialV2Protocol *p, uint8_t command, uint32_t value){
-	if(p == NULL) return;
+LAErrorCode LACalculateFCSProtocolV2(LASerialV2Protocol *p, uint16_t *checksum){
+	LA_CHECK_NULLPTR(p);
+	LA_CHECK_NULLPTR(checksum);
+	
+	LAErrorCode code = LAProtocolV2GetHeaderChecksum(p, checksum);
+	if(code) return code;
 
-	p->isReady = 0;
+	for(size_t i = 0; i < LA_MIN(p->length, LA_SERIAL_V2_DATA_LENGTH); i++){
+		(*checksum) = LAModbusCRC16((*checksum), p->data[i], false);
+	}
+
+	return LA_NO_ERROR;
+}
+
+LAErrorCode LAPrepareProtocolV2Basic(LASerialV2Protocol *p, uint8_t command, uint32_t value){
+	LA_CHECK_NULLPTR(p);
+
+	LAErrorCode code = LA_NO_ERROR;
+
+	code = LAProtocolV2Init(p);
+	if(code) return code;
+
 	p->command = command;
 	p->length  = sizeof(uint32_t);
-	p->transactionId = transactionIdAccumulator;
-	p->version = 1;
-	p->flags = LA_PROTOCOL_V2_FLAG_ACK;
-	p->headerChecksum = 0;
 
-	(void) LAProtocolV2GetHeaderChecksum(p, &(p->headerChecksum));
+	uint16_t headerChecksum = 0;
+	code = LAProtocolV2GetHeaderChecksum(p, &headerChecksum);
+	if(code) return code;
+	p->headerChecksum = headerChecksum;
 	
 	memset(p->data, 0, LA_SERIAL_V2_DATA_LENGTH);
-	LABigEndiandCpy32(&(p->data[0]), value);
+	code = LAHostToProtocolU32(value, p->data, 0, LA_SERIAL_V2_DATA_LENGTH);
+	if(code) return code;
 
-	p->fcs = LACalculateFCSProtocolV2(p);
-	LACompileProtocolV2Frames(p);
+	uint16_t fcs = 0x0;
+	code = LACalculateFCSProtocolV2(p, &fcs);
+	if(code) return code;
+	p->fcs = fcs;
+
+	code = LACompileProtocolV2Frames(p);
+	if(code) return code;
 
 	transactionIdAccumulator++;
+	return LA_NO_ERROR;
 }
 
 uint8_t LAFuncPopcount(uint8_t value){
 	return __builtin_popcount(value);
 }
 
-uint16_t LACalculateFCSProtocolV2(LASerialV2Protocol *p){
-	uint16_t fcs = 0;
-	
-	fcs += LAFuncPopcount(p->command);
-	fcs += LAFuncPopcount(p->length & 0xFF);
-	fcs += LAFuncPopcount(p->length >> 8);
-
-	for(uint16_t i = 0; i < p->length; i++){
-		fcs += LAFuncPopcount(p->data[i]);
-	}
-
-	return fcs;
-}
 
 LAErrorCode LAHostToProtocolU16(uint16_t src, uint8_t *dest, size_t index, size_t length){
 	LA_CHECK_NULLPTR(dest);
@@ -139,60 +164,93 @@ LAErrorCode LAHostToProtocolU32(uint32_t src, uint8_t *dest, size_t index, size_
 	return LA_NO_ERROR;
 }
 
-void LACompileProtocolV2Frames(LASerialV2Protocol *p){
-	if(p == NULL) return;
+LAErrorCode LACompileProtocolV2Frames(LASerialV2Protocol *p){
+	LA_CHECK_NULLPTR(p);
+
+	LAErrorCode code = LA_NO_ERROR;
 
 	p->frames[0] = p->version;
 	p->frames[1] = p->command;
-	(void) LAHostToProtocolU16(p->length,         p->frames, 2, LA_SERIAL_V2_FRAME_LENGTH);
-	(void) LAHostToProtocolU16(p->transactionId,  p->frames, 4, LA_SERIAL_V2_FRAME_LENGTH);
-	(void) LAHostToProtocolU16(p->flags,          p->frames, 6, LA_SERIAL_V2_FRAME_LENGTH);
-	(void) LAHostToProtocolU16(p->headerChecksum, p->frames, 8, LA_SERIAL_V2_FRAME_LENGTH);
+	code = LAHostToProtocolU16(p->length,         p->frames, 2, LA_SERIAL_V2_FRAME_LENGTH);
+	if(code) return code;
+	code = LAHostToProtocolU16(p->transactionId,  p->frames, 4, LA_SERIAL_V2_FRAME_LENGTH);
+	if(code) return code;
+	code = LAHostToProtocolU16(p->flags,          p->frames, 6, LA_SERIAL_V2_FRAME_LENGTH);
+	if(code) return code;
+	code = LAHostToProtocolU16(p->headerChecksum, p->frames, 8, LA_SERIAL_V2_FRAME_LENGTH);
+	if(code) return code;
 	//p->frames[1] = (p->length >> 0) & 0xFF;
 	//p->frames[2] = (p->length >> 8) & 0xFF; 
 
 	for(uint16_t i = 0; i < p->length; i++){
-		p->frames[7+i] = p->data[i];
+		p->frames[10+i] = p->data[i];
 	}
 
-	(void) LAHostToProtocolU16(p->fcs, p->frames, 10 + p->length, LA_SERIAL_V2_FRAME_LENGTH);
+	code = LAHostToProtocolU16(p->fcs, p->frames, 10 + p->length, LA_SERIAL_V2_FRAME_LENGTH);
+	if(code) return code;
 	//p->frames[3+p->length] = (p->fcs >> 0) & 0xFF;
 	//p->frames[4+p->length] = (p->fcs >> 8) & 0xFF;
 
 	p->frameLength = 12 + p->length;
 	p->isReady = 1;
+
+	return LA_NO_ERROR;
 }
 
-void LAPrepareProtocolV2Wave(LASerialV2Protocol *p, uint8_t bank, uint8_t *wave, uint16_t size){
-	if(p == NULL) return;
-	if(wave == NULL) return;
+LAErrorCode LAPrepareProtocolV2Wave(LASerialV2Protocol *p, uint8_t bank, uint8_t *wave, uint16_t size){
+	LA_CHECK_NULLPTR(p);
+	LA_CHECK_NULLPTR(wave);
 
-	p->isReady = 0;
+	LAErrorCode code = LA_NO_ERROR;
+
+	code = LAProtocolV2Init(p);
+	if(code) return code;
+
 	p->command = LA_COMMAND_TEST_DAC_WAVE_FULL;
 	p->length  = size + 1;
-	(void) LAProtocolV2GetHeaderChecksum(p, &(p->headerChecksum));
+	code = LAProtocolV2GetHeaderChecksum(p, &(p->headerChecksum));
+	if(code) return code;
 	
 	memset(p->data, 0, LA_SERIAL_V2_DATA_LENGTH);
 	p->data[0] = bank;
 	memcpy(&(p->data[1]), wave, size);
 
-	p->fcs = LACalculateFCSProtocolV2(p);
-	LACompileProtocolV2Frames(p);
+	uint16_t fcs = 0x0;
+	code = LACalculateFCSProtocolV2(p, &fcs);
+	if(code) return code;
+	p->fcs = fcs;
+
+	code = LACompileProtocolV2Frames(p);
+	if(code) return code;
+
+	return LA_NO_ERROR;
 }
 
-void LAPrepareProtocolV2Stream(LASerialV2Protocol *p, uint8_t *data, uint16_t size){
-	if(p == NULL) return;
-	if(data == NULL) return;
+LAErrorCode LAPrepareProtocolV2Stream(LASerialV2Protocol *p, uint8_t *data, uint16_t size){
+	LA_CHECK_NULLPTR(p);
+	LA_CHECK_NULLPTR(data);
 
-	p->isReady = 0;
+	LAErrorCode code = LA_NO_ERROR;
+
+	code = LAProtocolV2Init(p);
+	if(code) return code;
+
 	p->command = LA_COMMAND_SEND_DAC_STREAM;
 	p->length  = size;
-	(void) LAProtocolV2GetHeaderChecksum(p, &(p->headerChecksum));
+	code = LAProtocolV2GetHeaderChecksum(p, &(p->headerChecksum));
+	if(code) return code;
 	
 	memcpy(p->data, data, size);
 
-	p->fcs = LACalculateFCSProtocolV2(p);
-	LACompileProtocolV2Frames(p);
+	uint16_t fcs = 0x0;
+	code = LACalculateFCSProtocolV2(p, &fcs);
+	if(code) return code;
+	p->fcs = fcs;
+
+	code = LACompileProtocolV2Frames(p);
+	if(code) return code;
+
+	return LA_NO_ERROR;
 }
 
 LAErrorCode LAProtocolV2RInit(LASerialV2RecvProtocol *p){

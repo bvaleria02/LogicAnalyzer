@@ -84,12 +84,16 @@ typedef struct {
 // protocol
 uint16_t LAModbusCRC16(uint16_t crc, uint8_t byte, bool init);
 void LAPrepareProtocol(LASerialProtocol *p, uint8_t command, uint32_t value);
-void LAPrepareProtocolV2Basic(LASerialV2Protocol *p, uint8_t command, uint32_t value);
+LAErrorCode LAProtocolV2Init(LASerialV2Protocol *p);
+LAErrorCode LAProtocolV2GetHeaderChecksum(LASerialV2Protocol *p, uint16_t *checksum);
+LAErrorCode LACalculateFCSProtocolV2(LASerialV2Protocol *p, uint16_t *checksum);
+LAErrorCode LAPrepareProtocolV2Basic(LASerialV2Protocol *p, uint8_t command, uint32_t value);
+LAErrorCode LAHostToProtocolU16(uint16_t src, uint8_t *dest, size_t index, size_t length);
+LAErrorCode LAHostToProtocolU32(uint32_t src, uint8_t *dest, size_t index, size_t length);
 uint8_t LAFuncPopcount(uint8_t value);
-uint16_t LACalculateFCSProtocolV2(LASerialV2Protocol *p);
-void LACompileProtocolV2Frames(LASerialV2Protocol *p);
-void LAPrepareProtocolV2Wave(LASerialV2Protocol *p, uint8_t bank, uint8_t *wave, uint16_t size);
-void LAPrepareProtocolV2Stream(LASerialV2Protocol *p, uint8_t *data, uint16_t size);
+LAErrorCode LACompileProtocolV2Frames(LASerialV2Protocol *p);
+LAErrorCode LAPrepareProtocolV2Wave(LASerialV2Protocol *p, uint8_t bank, uint8_t *wave, uint16_t size);
+LAErrorCode LAPrepareProtocolV2Stream(LASerialV2Protocol *p, uint8_t *data, uint16_t size);
 LAErrorCode LAProtocolV2RInit(LASerialV2RecvProtocol *p);
 LAErrorCode LAProtocolV2RFill(LASerialV2RecvProtocol *p, uint8_t *data, uint16_t size);
 uint8_t LAProtocolV2RIsReady(LASerialV2RecvProtocol *p);
