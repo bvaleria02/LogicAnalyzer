@@ -52,8 +52,8 @@ LAErrorCode LAProtocolV2Init(LASerialV2Protocol *p){
 	p->fcs 				    = 0;
 	p->isReady 			  = 0;
 
-	code = LAPrintACKList(&(lawp->ack));
-	if(code) return code;
+//	code = LAPrintACKList(&(lawp->ack));
+//	if(code) return code;
 
 	return LA_NO_ERROR;
 }
@@ -126,10 +126,7 @@ LAErrorCode LAPrepareProtocolV2Basic(LASerialV2Protocol *p, uint8_t command, uin
 	code = LACalculateFCSProtocolV2(p, &fcs);
 	if(code) return code;
 	p->fcs = fcs;
-
-	code = LACompileProtocolV2Frames(p);
-	if(code) return code;
-
+	
 	return LA_NO_ERROR;
 }
 
@@ -269,9 +266,6 @@ LAErrorCode LAPrepareProtocolV2Wave(LASerialV2Protocol *p, uint8_t bank, uint8_t
 	if(code) return code;
 	p->fcs = fcs;
 
-	code = LACompileProtocolV2Frames(p);
-	if(code) return code;
-
 	return LA_NO_ERROR;
 }
 
@@ -295,9 +289,6 @@ LAErrorCode LAPrepareProtocolV2Stream(LASerialV2Protocol *p, uint8_t *data, uint
 	code = LACalculateFCSProtocolV2(p, &fcs);
 	if(code) return code;
 	p->fcs = fcs;
-
-	code = LACompileProtocolV2Frames(p);
-	if(code) return code;
 
 	return LA_NO_ERROR;
 }

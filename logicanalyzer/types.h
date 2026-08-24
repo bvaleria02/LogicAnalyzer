@@ -2,7 +2,9 @@
 #define LA_TYPES
 
 #include "structures/listStore.h"
+#include "structures/dequeStore.h"
 #include "threads/ack.h"
+#include <pthread.h>
 
 #ifndef LABucket
 	typedef struct _la_bucket LABucket;
@@ -221,6 +223,20 @@ typedef struct {
 	GtkWidget *zoom;
 } LAStatus;
 
+typedef struct {
+	pthread_t thread;
+	pthread_cond_t cond;
+	pthread_mutex_t mutex;
+	bool dirty;
+	bool close;
+} LAThread;
+
+typedef struct {
+	LAThread thread;
+	LADequeStore deque;
+	pthread_mutex_t dequeMutex;
+} LATXThread;
+
 struct _la_window {
 	LAChannel channel[MAX_CHANNEL_COUNT];
 	uint8_t channelCount;
@@ -241,6 +257,7 @@ struct _la_window {
 	GtkWidget *vbox;
 
 	LAACK ack;
+	LATXThread tx;
 };
 
 typedef struct {

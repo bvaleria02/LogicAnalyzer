@@ -247,8 +247,8 @@ LAErrorCode LAListStoreIterator_backend(LAListStore *list, LAListStoreCallback c
   LAErrorCode code = LA_NO_ERROR;
   
   // Initializes for search
-  if(found != NULL)    (*found)     = false;
-  if(foundNode != NULL)(*foundNode) = NULL;
+  if(found != NULL)       (*found)     = false;
+  if(foundNode != NULL)   (*foundNode) = NULL;
   if(hasFinished != NULL) (*hasFinished) = false;
   
   bool stopIter = false;
@@ -473,6 +473,10 @@ LAErrorCode LAListStoreRemoveAt(LAListStore *list, const size_t index, void **da
   LAErrorCode code = LA_NO_ERROR;
   bool found = false;
   LAListStoreNode *foundNode = NULL;
+  
+  if(data != NULL){
+    (*data) = NULL;
+  }
 
   code = LAListStoreIterator_backend(
               LA_LIST_STORE(list),
@@ -489,13 +493,17 @@ LAErrorCode LAListStoreRemoveAt(LAListStore *list, const size_t index, void **da
   if(!found) return LA_ERROR_OUTOFBOUND;
   
   if(data != NULL){
+    (*data) = NULL;
     (*data) = malloc(foundNode->length);
     if((*data) == NULL) return LA_ERROR_MALLOC;
     memcpy((*data), foundNode->data, foundNode->length);
     if(length != NULL) (*length) = foundNode->length;
   }
   
-  if(foundNode != NULL) free(foundNode);
+  code = LAListStoreRemoveBetweenNodes(foundNode);
+  if(code) return code;
+  
+  free(foundNode);
 
   return LA_NO_ERROR;  
 }
