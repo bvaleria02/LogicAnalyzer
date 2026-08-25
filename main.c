@@ -17,71 +17,12 @@
 #include "logicanalyzer/structures/listStore.h"
 #include "logicanalyzer/structures/dequeStore.h"
 #include "logicanalyzer/threads/ack.h"
+#include "logicanalyzer/threads/tx.h"
 #include <stdbool.h>
 #include <pthread.h>
 #include "logicanalyzer/utils.h"
 
 LAWindow *lawp;
-
-
-
-void *LATXThreadRoutine(void *ptr){
-	LAWindow *law = (LAWindow *)ptr;
-
-	printf("TX: Create\n");
-	pthread_mutex_lock(&(law->tx.thread.mutex));
-	
-	// Main loop
-	while(true){
-		printf("TX: Sleep\n");
-		// "Sleep" while dirty flags is not set
-		// Using while to protect agains spurious awake
-		// NOTE: ALWAYS lock mutex first, and then change "dirty" outsude.
-		while((!law->tx.thread.dirty) && (!law->tx.thread.close)){
-		printf("TX: Sleeping\tdirty: %i\tclose: %i\n", law->tx.thread.dirty, law->tx.thread.close);
-			pthread_cond_wait(&(law->tx.thread.cond), &(law->tx.thread.mutex));
-		}
-
-		printf("TX: Awake\n");
-
-		if(law->tx.thread.close) break;
-
-		void *data = NULL;
-		size_t length = 0;
-		// Handle list
-		printf("TX: Iter\n");
-		do{
-			data = NULL;
-			
-			printf("TX: Pop\n");
-			LA_MUTEX(&(law->tx.dequeMutex), {
-				LADequeStorePopLeft(&(law->tx.deque), &data, &length);			         
-			});
-
-			// End if deque is empty (data == NULL)
-			if(data == NULL) break;
-
-			size_t totalBytesSent = 0;
-			while(totalBytesSent < length){
-  			printf("TX: Send\n");
-				int writeResponse = write(law->connect.fd, data, length);
-				printf("Sent data:\tresponse: %i\tbytes sent:%li\n", writeResponse, length);
-				if(writeResponse < 0){
-					// TODO: Handle error, lol
-				}
-				totalBytesSent += writeResponse;
-			}
-
-			if(data != NULL) free(data);
-		} while(true);
-
-		law->tx.thread.dirty = false;
-	}
-	
-	pthread_mutex_unlock(&(law->tx.thread.mutex));
-
-	return NULL;
-}
 
 LAErrorCode LACreateTXThread(LAWindow *law){
 	int response = 0;
