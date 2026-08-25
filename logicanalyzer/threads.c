@@ -23,6 +23,7 @@
 #include "bucket.h"
 #include "serial.h"
 #include "enums.h"
+#include "threads/ack.h"
 
 void LAHandleBucketWrite(uint8_t *buffer, int16_t size){
 	pthread_mutex_lock(&(lawp->mutexes.bucketAccess));
@@ -180,12 +181,39 @@ LAErrorCode LAReadACKHandler(LASerialV2RecvProtocol *p){
 	LA_CHECK_NULLPTR(p);
 	
 	printf("RX Command ACK\n");
+
+	LAErrorCode code = LA_NO_ERROR;
+
+	if(p->length < 2){
+		printf("Error: ACK received but response is too short.");
+		return LA_ERROR_RESPONSE_TOO_SHORT;
+	}
+
+	uint16_t transactionId = 0;
+	code = LAProtocolToHostU16(&transactionId, (uint8_t *)p->data, 0, LA_MIN(p->length, LA_SERIAL_V2_DATA_LENGTH));
+	if(code) goto cleanup;
+
+	bool found = false;
+	double rtt = 0;
+	code = LAResolveACK(&(lawp->ack), transactionId, &found, &rtt);
+	if(code) goto cleanup;
+
+	printf("Resolve ACK by Id:\n\tTransactionId: %i\tFound: %i\trtt: %lf ms\n", transactionId, found, rtt);
+
+	size_t matches = 0;
+	code = LAResolveTimeoutACK(&(lawp->ack), &matches);
+	if(code) goto cleanup;
+
+	printf("Resolve ACK by Timeout:\n\tMatches: %li\n", matches);
 	
-	// Handle ACK
+	goto cleanup;
+	
+cleanup:
+	// Handle ACK (old)
 	atomic_store(&(lawp->mutexes.isWaitingACK), 0);
 	pthread_cond_signal(&(lawp->mutexes.condACK));
 
-	return LA_NO_ERROR;
+	return code;
 }
 
 LAErrorCode LAReadCaptureHandler(LASerialV2RecvProtocol *p){

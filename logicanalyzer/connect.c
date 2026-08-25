@@ -20,6 +20,7 @@
 #include "gtk_funcs.h"
 #include "serial.h"
 #include "threads.h"
+#include "utils.h"
 
 //#define COM_RATE B921600
 #define COM_RATE B2000000
@@ -181,7 +182,7 @@ void LASendSerialV2(LAWindow *law, LASerialV2Protocol *p){
 	if(law->connect.fd < 0){
 		return;
 	}
-
+/*
 	struct timespec ts;
 	clock_gettime(CLOCK_REALTIME, &ts);
 	ts.tv_sec += LA_TIMEOUT_SEC;
@@ -206,6 +207,18 @@ void LASendSerialV2(LAWindow *law, LASerialV2Protocol *p){
 	}
 
 	pthread_mutex_unlock(&(law->mutexes.lockACK));
+	*/
+
+	LACompileProtocolV2Frames(p);
+	
+	LA_MUTEX(&(law->tx.dequeMutex), {
+		LADequeStorePush(&(law->tx.deque), p->frames, p->frameLength);
+	});
+
+	LA_MUTEX(&(law->tx.thread.mutex), {
+		law->tx.thread.dirty = true;
+		pthread_cond_signal(&(law->tx.thread.cond));	
+	});
 }
 
 void LASendBasicSerial(LAWindow *law, uint8_t command, uint32_t value){

@@ -32,12 +32,16 @@ OGL_LIBS  = `pkg-config --libs glfw3 epoxy`
 all:
 	$(CC) $(FLAGS) -o $(GEN_TARGET) $(GEN_SRCS) $(GEN_LINKS)
 	$(GEN_TARGET)
+	$(CC) $(FLAGS) -c ./logicanalyzer/threads/tx.c -o ./bin/threadsTX.o
+	$(CC) $(FLAGS) -c ./logicanalyzer/threads/ack.c -o ./bin/threadsAck.o
 	$(CC) $(FLAGS) -c ./logicanalyzer/safe.c -o ./bin/safe.o
 	$(CC) $(FLAGS) -c ./logicanalyzer/structures/model.c -o ./bin/structsModel.o
 	$(CC) $(FLAGS) -c ./logicanalyzer/structures/itemStackable.c -o ./bin/structsStackable.o
 	$(CC) $(FLAGS) -c ./logicanalyzer/structures/itemListable.c -o ./bin/structsListable.o
 	$(CC) $(FLAGS) -c ./logicanalyzer/structures/error.c -o ./bin/structsError.o
 	$(CC) $(FLAGS) -c ./logicanalyzer/structures/listStore.c -o ./bin/structsListStore.o
+	$(CC) $(FLAGS) -c ./logicanalyzer/structures/dequeStore.c -o ./bin/structsDequeStore.o
+	$(CC) $(FLAGS) -c ./logicanalyzer/structures/queueStore.c -o ./bin/structsQueueStore.o
 	$(FC) $(F90_FLAGS) -c ./logicanalyzer/dataLoader/clampfuncs.f90 -o ./bin/fortranClampFuncs.o
 	$(FC) $(F90_FLAGS) $(F90_FLAGS_2) -c ./logicanalyzer/numericMethods/dft.f90 -o ./bin/fortranDft.o
 	$(FC) $(F90_FLAGS) $(F90_FLAGS_2) -c ./logicanalyzer/windowFunctions/windowFunctions.f90 -o ./bin/fortranWindowFunctions.o

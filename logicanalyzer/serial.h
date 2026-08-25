@@ -5,11 +5,13 @@
 #include <stddef.h>
 
 #define LA_SERIAL_FRAME_LENGTH     16
+#define LA_SERIAL_V2_HEADER_LENGTH 14
 #define LA_SERIAL_V2_DATA_LENGTH   257
-#define LA_SERIAL_V2_FRAME_LENGTH  269
+#define LA_SERIAL_V2_FRAME_LENGTH  271
 #define LA_SERIAL_V2R_DATA_LENGTH  1025
 #define LA_SERIAL_V2R_FRAME_LENGTH 1030
-#define LA_SERAIL_V2_VERSION 1
+#define LA_SERIAL_V2_VERSION 2
+#define LA_SERIAL_V2_MAGIC 0x414C // LA
 
 #ifndef LASerialV2Protocol
 	typedef struct _la_serial_v2_protocol LASerialV2Protocol;
@@ -56,6 +58,7 @@ typedef struct {
 } LASerialProtocol;
 
 struct _la_serial_v2_protocol {
+	uint16_t magic;
 	uint8_t version;
 	uint8_t command;
 	uint16_t length;
@@ -82,14 +85,18 @@ typedef struct {
 } LASerialV2RecvProtocol;
 
 // protocol
+LAErrorCode LAHostToProtocolU16(uint16_t src, uint8_t *dest, size_t index, size_t length);
+LAErrorCode LAHostToProtocolU32(uint32_t src, uint8_t *dest, size_t index, size_t length);
+LAErrorCode LAProtocolToHostU16(uint16_t *dest, uint8_t *src, size_t index, size_t length);
+LAErrorCode LAProtocolToHostU32(uint32_t *dest, uint8_t *src, size_t index, size_t length);
+
+
 uint16_t LAModbusCRC16(uint16_t crc, uint8_t byte, bool init);
 void LAPrepareProtocol(LASerialProtocol *p, uint8_t command, uint32_t value);
 LAErrorCode LAProtocolV2Init(LASerialV2Protocol *p);
 LAErrorCode LAProtocolV2GetHeaderChecksum(LASerialV2Protocol *p, uint16_t *checksum);
 LAErrorCode LACalculateFCSProtocolV2(LASerialV2Protocol *p, uint16_t *checksum);
 LAErrorCode LAPrepareProtocolV2Basic(LASerialV2Protocol *p, uint8_t command, uint32_t value);
-LAErrorCode LAHostToProtocolU16(uint16_t src, uint8_t *dest, size_t index, size_t length);
-LAErrorCode LAHostToProtocolU32(uint32_t src, uint8_t *dest, size_t index, size_t length);
 uint8_t LAFuncPopcount(uint8_t value);
 LAErrorCode LACompileProtocolV2Frames(LASerialV2Protocol *p);
 LAErrorCode LAPrepareProtocolV2Wave(LASerialV2Protocol *p, uint8_t bank, uint8_t *wave, uint16_t size);

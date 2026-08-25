@@ -1,4 +1,5 @@
 #include "../liblogicanalyzer.h"
+#include "../utils.h"
 #include "model.h"
 #include "itemStackable.h"
 #include "error.h"
@@ -23,7 +24,8 @@ const LAItemStackableVTable LAItemStackableVTableBase = {
     .iter            = (LAItemModelFnIter) LAItemStackableIter,
     .insert          = (LAItemModelFnInsert) LAItemStackablePush,
     .remove          = (LAItemModelFnRemove) LAItemStackablePop,
-    .get             = (LAItemModelFnGet) LAItemStackablePeek
+    .get             = (LAItemModelFnGet) LAItemStackablePeek,
+    .isEmpty         = (LAItemModelFnIsEmpty) LAItemStackableIsEmpty
   },
   .push = (LAItemStackableFnPush) LAItemStackablePush,
   .pop  = (LAItemStackableFnPop)  LAItemStackablePop,
@@ -174,22 +176,34 @@ LAErrorCode LAItemStackablePush(LAItemStackable *stackable, void *data, size_t l
   return code;  
 }
 
-LAErrorCode LAItemStackablePop(LAItemStackable *stackable){
-  LA_HANDLE_NULLPTR(stackable, LA_PROPAGATE_ERROR);
+LAErrorCode LAItemStackablePop(LAItemStackable *stackable, void **data, size_t *length){
+  LA_CHECK_NULLPTR(stackable);
+  LA_CHECK_NULLPTR(data);
+  LA_CHECK_NULLPTR(length);
 
   LAErrorCode code = LA_NO_ERROR;
-  code = LAItemModelRemove(LA_ITEM_MODEL(stackable));
+  code = LAItemModelRemove(LA_ITEM_MODEL(stackable), data, length);
+
+  return code;  
+}
+
+LAErrorCode LAItemStackablePeek(const LAItemStackable *stackable, void **data, size_t *length){
+  LA_CHECK_NULLPTR(stackable);
+  LA_CHECK_NULLPTR(data);
+  LA_CHECK_NULLPTR(length);
+
+  LAErrorCode code = LA_NO_ERROR;
+  code = LAItemModelGet(LA_ITEM_MODEL(stackable), data, length);
   
   return code;  
 }
 
-LAErrorCode LAItemStackablePeek(const LAItemModel *stackable, void **data, size_t *length){
-  LA_HANDLE_NULLPTR(stackable,  LA_PROPAGATE_ERROR);
-  LA_HANDLE_NULLPTR(data,   LA_PROPAGATE_ERROR);
-  LA_HANDLE_NULLPTR(length, LA_PROPAGATE_ERROR);
+LAErrorCode LAItemStackableIsEmpty(const LAItemStackable *stackable, bool *isEmpty){
+  LA_CHECK_NULLPTR(stackable);
+  LA_CHECK_NULLPTR(isEmpty);
 
   LAErrorCode code = LA_NO_ERROR;
-  code = LAItemModelGet(LA_ITEM_MODEL(stackable), data, length);
+  code = LAItemModelIsEmpty(LA_ITEM_MODEL(stackable), isEmpty);
   
   return code;  
 }

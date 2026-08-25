@@ -11,7 +11,7 @@
 typedef struct LAListStore         LAListStore;
 typedef struct _la_list_store_node LAListStoreNode;
 
-typedef LAErrorCode (*LAListStoreCallback)(LAListStore *listStore, LAListStoreNode *node, size_t index, void *data);
+typedef LAErrorCode (*LAListStoreCallback)(LAListStore *listStore, LAListStoreNode *node, size_t index, void *data, bool *stopIter);
 
 typedef struct {
   LAItemListableVTable  listableVTable;
@@ -40,7 +40,7 @@ struct LAListStore {
 extern const LAListStoreVTable LAListStoreVTableBase;
 
 #define LA_LIST_STORE(x) ((LAListStore *)(x))
-#define LA_LIST_STORE_CALLBACK(x) ((LAListStoreCallback *)(x))
+#define LA_LIST_STORE_CALLBACK(x) ((LAListStoreCallback)(x))
 
 LAErrorCode LAListStoreCreateNode(LAListStoreNode **node, const size_t nodeLength, const size_t dataLength, const void *data, const LAListStoreSentinel sentinel, const bool useNodeLength);
 LAErrorCode LAListStoreInit(LAListStore *list, size_t maxNodeCount, bool isInfinite, size_t defaultNodeSize, bool useDefaultSize);
@@ -58,10 +58,14 @@ LAErrorCode LAListStoreIsMutable(const LAListStore *listStore, bool *isMutable);
 LAErrorCode LAListStoreGetNodeCount(const LAListStore *listStore, size_t *count);
 LAErrorCode LAListStoreIter(LAListStore *listStore, LAListStoreCallback callback, void *data);
 LAErrorCode LAListStoreInsert(LAListStore *listStore, void *data, size_t length);
-LAErrorCode LAListStoreRemove(LAListStore *listStore);
+LAErrorCode LAListStoreRemove(LAListStore *listStore, void **data, size_t *length);
 LAErrorCode LAListStoreGet(const LAListStore *listStore, void **data, size_t *length);
 LAErrorCode LAListStoreInsertAt(LAListStore *listStore, const size_t index, void *data, size_t length);
-LAErrorCode LAListStoreRemoveAt(LAListStore *listStore, const size_t index);
+LAErrorCode LAListStoreRemoveAt(LAListStore *listStore, const size_t index, void **data, size_t *length);
 LAErrorCode LAListStoreGetAt(const LAListStore *listStore, const size_t index, void **data, size_t *length);
+LAErrorCode LAListStoreFind(const LAListStore *listStore, LAListStoreCallback callback, void *data, bool *found, size_t *foundIndex, void **nodeData);
+LAErrorCode LAListStoreFindRemove(LAListStore *listStore, LAListStoreCallback callback, void *data, bool *found);
+LAErrorCode LAListStoreFindRemoveAll(LAListStore *listStore, LAListStoreCallback callback, void *data, size_t *matches);
+LAErrorCode LAListStoreIsEmpty(const LAListStore *list, bool *isEmpty);
 
 #endif //LA_LIST_STORE_H

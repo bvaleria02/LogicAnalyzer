@@ -128,6 +128,10 @@ typedef struct {
   typedef enum _la_buffer_select LABufferSelect;
 #endif
 
+#ifndef LAACK
+  typedef struct _la_ack LAACK;
+#endif
+
 extern double defaultChannelColors[MAX_CHANNEL_COUNT][RGB_COUNT];
 extern double defaultMidLineColor[RGB_COUNT];
 extern const char validClockNames[CLK_NAMES_COUNT][CLK_NAMES_LENGTH];

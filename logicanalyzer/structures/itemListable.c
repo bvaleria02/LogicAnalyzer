@@ -1,4 +1,5 @@
 #include "../liblogicanalyzer.h"
+#include "../utils.h"
 #include "model.h"
 #include "itemListable.h"
 #include "error.h"
@@ -23,11 +24,15 @@ const LAItemListableVTable LAItemListableVTableBase = {
     .iter            = (LAItemModelFnIter) LAItemListableIter,
     .insert          = (LAItemModelFnInsert) LAItemListableInsert,
     .remove          = (LAItemModelFnRemove) LAItemListableRemove,
-    .get             = (LAItemModelFnGet) LAItemListableGet
+    .get             = (LAItemModelFnGet) LAItemListableGet,
+    .isEmpty         = (LAItemModelFnIsEmpty) LAItemListableIsEmpty,
   },
-  .insertAt = (LAItemListableFnInsertAt) LAItemListableInsertAt,
-  .removeAt = (LAItemListableFnRemoveAt) LAItemListableRemoveAt,
-  .getAt    = (LAItemListableFnGetAt) LAItemListableGetAt
+  .insertAt        = (LAItemListableFnInsertAt) LAItemListableInsertAt,
+  .removeAt        = (LAItemListableFnRemoveAt) LAItemListableRemoveAt,
+  .getAt           = (LAItemListableFnGetAt) LAItemListableGetAt,
+  .find            = (LAItemListableFnFind) LAItemListableFind,
+  .findRemove      = (LAItemListableFnFindRemove) LAItemListableFindRemove,
+  .findRemoveAll   = (LAItemListableFnFindRemoveAll) LAItemListableFindRemoveAll
 };
 
 LAErrorCode LAItemListableInit(LAItemListable *listable, size_t maxNodeCount, bool isInfinite, size_t defaultNodeSize, bool useDefaultSize){
@@ -174,11 +179,11 @@ LAErrorCode LAItemListableInsert(LAItemListable *listable, void *data, size_t le
   return code;  
 }
 
-LAErrorCode LAItemListableRemove(LAItemListable *listable){
+LAErrorCode LAItemListableRemove(LAItemListable *listable, void **data, size_t *length){
   LA_HANDLE_NULLPTR(listable, LA_PROPAGATE_ERROR);
 
   LAErrorCode code = LA_NO_ERROR;
-  code = LAItemModelRemove(LA_ITEM_MODEL(listable));
+  code = LAItemModelRemove(LA_ITEM_MODEL(listable), data, length);
   
   return code;  
 }
@@ -205,11 +210,13 @@ LAErrorCode LAItemListableInsertAt(LAItemListable *listable, const size_t index,
   return LALogStructureErrorBase((void *)listable, "itemListable", "insertAt");
 }
 
-LAErrorCode LAItemListableRemoveAt(LAItemListable *listable, const size_t index){
+LAErrorCode LAItemListableRemoveAt(LAItemListable *listable, const size_t index, void **data, size_t *length){
   LA_HANDLE_NULLPTR(listable, LA_PROPAGATE_ERROR);
   
   (void) listable;
   (void) index;
+  (void) data;
+  (void) length;
   return LALogStructureErrorBase((void *)listable, "itemListable", "removeAt");
 }
 
@@ -223,4 +230,54 @@ LAErrorCode LAItemListableGetAt(const LAItemListable *listable, const size_t ind
   (void) data;
   (void) length;
   return LALogStructureErrorBase((void *)listable, "itemListable", "getAt");
+}
+
+LAErrorCode LAItemListableFind(const LAItemListable *listable, LAItemListableCallback callback, void *data, bool *found, size_t *foundIndex, void **node){
+  LA_CHECK_NULLPTR(listable);
+  LA_CHECK_NULLPTR(callback);
+  LA_CHECK_NULLPTR(found);
+  LA_CHECK_NULLPTR(foundIndex);
+  LA_CHECK_NULLPTR(node);
+  
+  (void) listable;
+  (void) callback;
+  (void) data;
+  (void) found;
+  (void) foundIndex;
+  (void) node;
+  return LALogStructureErrorBase(listable, "itemListable", "find");
+}
+
+LAErrorCode LAItemListableFindRemove(LAItemListable *listable, LAItemListableCallback callback, void *data, bool *found){
+  LA_CHECK_NULLPTR(listable);
+  LA_CHECK_NULLPTR(callback);
+  LA_CHECK_NULLPTR(found);
+  
+  (void) listable;
+  (void) callback;
+  (void) data;
+  (void) found;
+  return LALogStructureErrorBase(listable, "itemListable", "findRemove");
+}
+
+LAErrorCode LAItemListableFindRemoveAll(LAItemListable *listable, LAItemListableCallback callback, void *data, size_t *matches){
+  LA_CHECK_NULLPTR(listable);
+  LA_CHECK_NULLPTR(callback);
+  LA_CHECK_NULLPTR(matches);
+  
+  (void) listable;
+  (void) callback;
+  (void) data;
+  (void) matches;
+  return LALogStructureErrorBase(listable, "itemListable", "findRemoveAll");
+}
+
+LAErrorCode LAItemListableIsEmpty(const LAItemListable *listable, bool *isEmpty){
+  LA_CHECK_NULLPTR(listable);
+  LA_CHECK_NULLPTR(isEmpty);
+
+  LAErrorCode code = LA_NO_ERROR;
+  code = LAItemModelIsEmpty(LA_ITEM_MODEL(listable), isEmpty);
+  
+  return code;  
 }
