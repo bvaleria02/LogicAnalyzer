@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <unistd.h>
 
 #include "../error.h"
 #include "../utils.h"
@@ -19,11 +20,15 @@ bool LATXThreadSleep(LAWindow *law){
 	while((!law->tx.thread.dirty) && (!law->tx.thread.close)){
 	printf("TX: Sleeping\tdirty: %i\tclose: %i\n", law->tx.thread.dirty, law->tx.thread.close);
 		pthread_cond_wait(&(law->tx.thread.cond), &(law->tx.thread.mutex));
+
+		bool isEmpty = false;
+		LADequeStoreIsEmpty(&(law->tx.deque), &isEmpty);
+		if(!isEmpty) break;
 	}
 
 	printf("TX: Awake\n");
 
-	return law->tx.thread.close;
+	return (law->tx.thread.close);
 }
 
 void LATXThreadSendData(LAWindow *law, const void *data, const size_t length){
@@ -64,6 +69,9 @@ void LATXThreadIter(LAWindow *law){
 		if(data == NULL) break;
 
 		LATXThreadSendData(law, data, length);
+
+		// data is non-NULL
+		free(data);
 
 	} while(true);
 

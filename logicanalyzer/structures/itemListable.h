@@ -58,5 +58,6 @@ LAErrorCode LAItemListableGetAt(const LAItemListable *listable, const size_t ind
 LAErrorCode LAItemListableFind(const LAItemListable *listable, LAItemListableCallback callback, void *data, bool *found, size_t *foundIndex, void **node);
 LAErrorCode LAItemListableFindRemove(LAItemListable *listable, LAItemListableCallback callback, void *data, bool *found);
 LAErrorCode LAItemListableFindRemoveAll(LAItemListable *listable, LAItemListableCallback callback, void *data, size_t *matches);
+LAErrorCode LAItemListableIsEmpty(const LAItemListable *listable, bool *isEmpty);
 
 #endif //LA_ITEM_LISTABLE_H

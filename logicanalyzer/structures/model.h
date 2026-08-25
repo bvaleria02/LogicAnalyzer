@@ -28,6 +28,7 @@ typedef LAErrorCode (*LAItemModelFnIter)(LAItemModel *model, LAItemModelCallback
 typedef LAErrorCode (*LAItemModelFnInsert)(LAItemModel *model, void *data, size_t length);
 typedef LAErrorCode (*LAItemModelFnRemove)(LAItemModel *model, void **data, size_t *length);
 typedef LAErrorCode (*LAItemModelFnGet)(const LAItemModel *model, void **data, size_t *length);
+typedef LAErrorCode (*LAItemModelFnIsEmpty)(const LAItemModel *model, bool *isEmpty);
 
 typedef struct {
   const LAItemModelFnDestroy          destroy;
@@ -46,6 +47,7 @@ typedef struct {
   const LAItemModelFnInsert           insert;
   const LAItemModelFnRemove           remove;
   const LAItemModelFnGet              get;
+  const LAItemModelFnIsEmpty          isEmpty;
 } LAItemModelVTable;
 
 extern const LAItemModelVTable LAItemModelVTableBase;
@@ -81,5 +83,6 @@ LAErrorCode LAItemModelIter(LAItemModel *model, LAItemModelCallback callback, vo
 LAErrorCode LAItemModelInsert(LAItemModel *model, void *data, size_t length);
 LAErrorCode LAItemModelRemove(LAItemModel *model, void **data, size_t *length);
 LAErrorCode LAItemModelGet(const LAItemModel *model, void **data, size_t *length);
+LAErrorCode LAItemModelIsEmpty(const LAItemModel *model, bool *isEmpty);
 
 #endif //LA_ITEM_MODEL_H

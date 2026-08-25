@@ -25,6 +25,7 @@ const LAItemListableVTable LAItemListableVTableBase = {
     .insert          = (LAItemModelFnInsert) LAItemListableInsert,
     .remove          = (LAItemModelFnRemove) LAItemListableRemove,
     .get             = (LAItemModelFnGet) LAItemListableGet,
+    .isEmpty         = (LAItemModelFnIsEmpty) LAItemListableIsEmpty,
   },
   .insertAt        = (LAItemListableFnInsertAt) LAItemListableInsertAt,
   .removeAt        = (LAItemListableFnRemoveAt) LAItemListableRemoveAt,
@@ -269,4 +270,14 @@ LAErrorCode LAItemListableFindRemoveAll(LAItemListable *listable, LAItemListable
   (void) data;
   (void) matches;
   return LALogStructureErrorBase(listable, "itemListable", "findRemoveAll");
+}
+
+LAErrorCode LAItemListableIsEmpty(const LAItemListable *listable, bool *isEmpty){
+  LA_CHECK_NULLPTR(listable);
+  LA_CHECK_NULLPTR(isEmpty);
+
+  LAErrorCode code = LA_NO_ERROR;
+  code = LAItemModelIsEmpty(LA_ITEM_MODEL(listable), isEmpty);
+  
+  return code;  
 }

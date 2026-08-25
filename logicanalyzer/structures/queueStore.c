@@ -27,7 +27,8 @@ const LAQueueStoreVTable LAQueueStoreVTableBase = {
       .iter            = (LAItemModelFnIter) LAQueueStoreIter,
       .insert          = (LAItemModelFnInsert) LAQueueStorePush,
       .remove          = (LAItemModelFnRemove) LAQueueStorePop,
-      .get             = (LAItemModelFnGet) LAQueueStorePeek
+      .get             = (LAItemModelFnGet) LAQueueStorePeek,
+      .isEmpty         = (LAItemModelFnIsEmpty) LAQueueStoreIsEmpty,
     },
     .push = (LAItemStackableFnPush) LAQueueStorePush,
     .pop  = (LAItemStackableFnPop)  LAQueueStorePop,
@@ -269,3 +270,16 @@ LAErrorCode LAQueueStorePeek(const LAQueueStore *queue, void **data, size_t *len
   return code;  
 }
 
+LAErrorCode LAQueueStoreIsEmpty(const LAQueueStore *queue, bool *isEmpty){
+  LA_CHECK_NULLPTR(queue);
+  LA_CHECK_NULLPTR(isEmpty);
+
+  LAErrorCode code = LA_NO_ERROR;
+  code = LAListStoreIsEmpty(&(queue->list), isEmpty);
+  if(code) return code;
+  
+  code = LAItemModelCopyMetadata(LA_ITEM_MODEL(&(queue->list)), LA_ITEM_MODEL(queue));
+  if(code) return code;
+  
+  return code;  
+}

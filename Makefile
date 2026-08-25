@@ -32,6 +32,7 @@ OGL_LIBS  = `pkg-config --libs glfw3 epoxy`
 all:
 	$(CC) $(FLAGS) -o $(GEN_TARGET) $(GEN_SRCS) $(GEN_LINKS)
 	$(GEN_TARGET)
+	$(CC) $(FLAGS) -c ./logicanalyzer/threads/tx.c -o ./bin/threadsTX.o
 	$(CC) $(FLAGS) -c ./logicanalyzer/threads/ack.c -o ./bin/threadsAck.o
 	$(CC) $(FLAGS) -c ./logicanalyzer/safe.c -o ./bin/safe.o
 	$(CC) $(FLAGS) -c ./logicanalyzer/structures/model.c -o ./bin/structsModel.o

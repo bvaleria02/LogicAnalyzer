@@ -55,5 +55,6 @@ LAErrorCode LADequeStorePeek(const LADequeStore *deque, void **data, size_t *len
 LAErrorCode LADequeStorePushLeft(LADequeStore *deque, void *data, size_t length);
 LAErrorCode LADequeStorePopLeft(LADequeStore *deque, void **data, size_t *length);
 LAErrorCode LADequeStorePeekLeft(const LADequeStore *deque, void **data, size_t *length);
+LAErrorCode LADequeStoreIsEmpty(const LADequeStore *deque, bool *isEmpty);
 
 #endif //LA_DEQUE_STORE_H

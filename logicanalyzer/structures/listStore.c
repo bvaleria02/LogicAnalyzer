@@ -29,6 +29,7 @@ const LAListStoreVTable LAListStoreVTableBase = {
       .insert          = (LAItemModelFnInsert) LAListStoreInsert,
       .remove          = (LAItemModelFnRemove) LAListStoreRemove,
       .get             = (LAItemModelFnGet) LAListStoreGet,
+      .isEmpty         = (LAItemModelFnIsEmpty) LAListStoreIsEmpty,
     },
     .insertAt        = (LAItemListableFnInsertAt) LAListStoreInsertAt,
     .removeAt        = (LAItemListableFnRemoveAt) LAListStoreRemoveAt,
@@ -633,3 +634,36 @@ LAErrorCode LAListStoreFindRemoveAll(LAListStore *list, LAListStoreCallback call
   return code;
 }
 
+LAErrorCode LAListStoreCounterCallback(LAListStore *list, LAListStoreNode *node, size_t index, void *data, bool *stopIter){
+  size_t *count = (size_t *)(data);
+  (*count) += 1;
+
+  (void) list;
+  (void) node;
+  (void) index;
+  (void) stopIter;
+  return LA_NO_ERROR;
+}
+
+LAErrorCode LAListStoreIsEmpty(const LAListStore *list, bool *isEmpty){
+  LA_CHECK_NULLPTR(list);
+  LA_CHECK_NULLPTR(isEmpty);
+
+  LAErrorCode code = LA_NO_ERROR;
+
+  size_t count = 0;
+  
+  code = LAListStoreIterator_backend(
+              LA_LIST_STORE(list),
+              LAListStoreCounterCallback,
+              (void *)(&count),
+              NULL,
+              NULL,
+              NULL,
+              NULL,
+              NULL
+            );
+
+  (*isEmpty) = (count == 0);
+  return code;
+}

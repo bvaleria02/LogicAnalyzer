@@ -46,6 +46,7 @@ LAErrorCode LAItemStackableGetMaxNodeCount(const LAItemStackable *stackable, siz
 LAErrorCode LAItemStackableIter(LAItemStackable *stackable, LAItemStackableCallback callback, void *data);
 LAErrorCode LAItemStackablePush(LAItemStackable *stackable, void *data, size_t length);
 LAErrorCode LAItemStackablePop(LAItemStackable *stackable, void **data, size_t *length);
-LAErrorCode LAItemStackablePeek(const LAItemModel *stackable, void **data, size_t *length);
+LAErrorCode LAItemStackablePeek(const LAItemStackable *stackable, void **data, size_t *length);
+LAErrorCode LAItemStackableIsEmpty(const LAItemStackable *stackable, bool *isEmpty);
 
 #endif //LA_ITEM_STACKABLE_H

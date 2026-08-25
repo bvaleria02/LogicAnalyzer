@@ -66,5 +66,6 @@ LAErrorCode LAListStoreGetAt(const LAListStore *listStore, const size_t index, v
 LAErrorCode LAListStoreFind(const LAListStore *listStore, LAListStoreCallback callback, void *data, bool *found, size_t *foundIndex, void **nodeData);
 LAErrorCode LAListStoreFindRemove(LAListStore *listStore, LAListStoreCallback callback, void *data, bool *found);
 LAErrorCode LAListStoreFindRemoveAll(LAListStore *listStore, LAListStoreCallback callback, void *data, size_t *matches);
+LAErrorCode LAListStoreIsEmpty(const LAListStore *list, bool *isEmpty);
 
 #endif //LA_LIST_STORE_H

@@ -25,6 +25,7 @@ const LAItemModelVTable LAItemModelVTableBase = {
   .insert          = (LAItemModelFnInsert) LAItemModelInsert,
   .remove          = (LAItemModelFnRemove) LAItemModelRemove,
   .get             = (LAItemModelFnGet) LAItemModelGet,
+  .isEmpty         = (LAItemModelFnIsEmpty) LAItemModelIsEmpty,
 };
 
 LAErrorCode LAItemModelCopyMetadata(LAItemModel *modelSrc, LAItemModel *modelDest){
@@ -214,3 +215,11 @@ LAErrorCode LAItemModelGet(const LAItemModel *model, void **data, size_t *length
   return LALogStructureErrorBase((void *)model, "itemModel", "get");
 }
 
+LAErrorCode LAItemModelIsEmpty(const LAItemModel *model, bool *isEmpty){
+  LA_CHECK_NULLPTR(model);
+  LA_CHECK_NULLPTR(isEmpty);
+
+  (void) model;
+  (void) isEmpty;
+  return LALogStructureErrorBase((void *)model, "itemModel", "isEmpty");
+}

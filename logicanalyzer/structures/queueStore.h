@@ -47,5 +47,6 @@ LAErrorCode LAQueueStoreIter(LAQueueStore *queue, LAQueueStoreCallback callback,
 LAErrorCode LAQueueStorePush(LAQueueStore *queue, void *data, size_t length);
 LAErrorCode LAQueueStorePop(LAQueueStore *queue, void **data, size_t *length);
 LAErrorCode LAQueueStorePeek(const LAQueueStore *queue, void **data, size_t *length);
+LAErrorCode LAQueueStoreIsEmpty(const LAQueueStore *queue, bool *isEmpty);
 
 #endif //LA_QUEUE_STORE_H

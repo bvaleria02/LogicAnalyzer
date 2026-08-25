@@ -27,7 +27,8 @@ const LADequeStoreVTable LADequeStoreVTableBase = {
       .iter            = (LAItemModelFnIter) LADequeStoreIter,
       .insert          = (LAItemModelFnInsert) LADequeStorePush,
       .remove          = (LAItemModelFnRemove) LADequeStorePop,
-      .get             = (LAItemModelFnGet) LADequeStorePeek
+      .get             = (LAItemModelFnGet) LADequeStorePeek,
+      .isEmpty         = (LAItemModelFnIsEmpty) LADequeStoreIsEmpty,
     },
     .push = (LAItemStackableFnPush) LADequeStorePush,
     .pop  = (LAItemStackableFnPop)  LADequeStorePop,
@@ -306,6 +307,20 @@ LAErrorCode LADequeStorePeekLeft(const LADequeStore *deque, void **data, size_t 
 
   LAErrorCode code = LA_NO_ERROR;
   code = LAListStoreGetAt(&(deque->list), 0l, data, length);
+  if(code) return code;
+  
+  code = LAItemModelCopyMetadata(LA_ITEM_MODEL(&(deque->list)), LA_ITEM_MODEL(deque));
+  if(code) return code;
+  
+  return code;  
+}
+
+LAErrorCode LADequeStoreIsEmpty(const LADequeStore *deque, bool *isEmpty){
+  LA_CHECK_NULLPTR(deque);
+  LA_CHECK_NULLPTR(isEmpty);
+
+  LAErrorCode code = LA_NO_ERROR;
+  code = LAListStoreIsEmpty(&(deque->list), isEmpty);
   if(code) return code;
   
   code = LAItemModelCopyMetadata(LA_ITEM_MODEL(&(deque->list)), LA_ITEM_MODEL(deque));

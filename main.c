@@ -78,7 +78,10 @@ int main(int argc, char **argv){
 
 	law.tx.thread.close = true;
 	pthread_cond_broadcast(&(law.tx.thread.cond));
-
+	pthread_join(law.tx.thread.thread, NULL);
+	LADequeStore *txDequep = &(law.tx.deque);
+	LADequeStoreDestroy(&txDequep);
+	
 	(void) argc;
 	(void) argv;
 	return 0;
